@@ -21,9 +21,9 @@ import (
 	"net/http"
 	"strconv"
 
-	. "github.com/comcast/rally-rest-toolkit"
-	"github.com/comcast/rally-rest-toolkit/fakes"
-	"github.com/comcast/rally-rest-toolkit/models"
+	. "github.com/aleksofficial/go-rally-rest-toolkit"
+	"github.com/aleksofficial/go-rally-rest-toolkit/fakes"
+	"github.com/aleksofficial/go-rally-rest-toolkit/models"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )

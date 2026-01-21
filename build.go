@@ -19,7 +19,7 @@ package rallyresttoolkit
 import (
 	"strconv"
 
-	"github.com/comcast/rally-rest-toolkit/models"
+	"github.com/aleksofficial/go-rally-rest-toolkit/models"
 )
 
 // Build - struct to hold client

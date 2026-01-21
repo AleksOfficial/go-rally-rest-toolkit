@@ -21,8 +21,8 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/comcast/rally-rest-toolkit"
-	"github.com/comcast/rally-rest-toolkit/models"
+	"github.com/aleksofficial/go-rally-rest-toolkit"
+	"github.com/aleksofficial/go-rally-rest-toolkit/models"
 )
 
 type QueryHR struct {
