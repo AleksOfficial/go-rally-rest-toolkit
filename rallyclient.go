@@ -22,9 +22,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"math/rand"
 	"net/http"
 	"net/url"
 	"strings"
+	"time"
 )
 
 //RallyClient - struct
@@ -54,6 +56,95 @@ func (s *RallyClient) HTTPClient() ClientDoer {
 	return s.client
 }
 
+// SetConfig sets the configuration for the RallyClient
+func (s *RallyClient) SetConfig(config *Config) {
+	s.config = config
+}
+
+// isRetryableStatusCode returns true if the HTTP status code indicates a transient error
+// that should be retried (5xx server errors)
+func isRetryableStatusCode(statusCode int) bool {
+	return statusCode >= 500 && statusCode < 600
+}
+
+// isRetryableError returns true if the error is a transient error that should be retried
+// (timeouts, connection errors, etc.)
+func isRetryableError(err error) bool {
+	if err == nil {
+		return false
+	}
+	// Check for context deadline exceeded (timeout)
+	if err == context.DeadlineExceeded {
+		return true
+	}
+	// Check for network errors by looking for common patterns
+	errStr := err.Error()
+	return strings.Contains(errStr, "connection refused") ||
+		strings.Contains(errStr, "connection reset") ||
+		strings.Contains(errStr, "timeout") ||
+		strings.Contains(errStr, "temporary failure")
+}
+
+// doWithRetry executes an HTTP request with retry logic and exponential backoff
+// It retries on 5xx errors and transient network errors, but not on 4xx errors
+func (s *RallyClient) doWithRetry(req *http.Request, body []byte) (*http.Response, error) {
+	maxRetries := DefaultMaxRetries
+	retryDelay := DefaultRetryDelay
+	if s.config != nil {
+		maxRetries = s.config.MaxRetries
+		retryDelay = s.config.RetryDelay
+	}
+
+	var lastErr error
+	var lastResp *http.Response
+
+	for attempt := 0; attempt <= maxRetries; attempt++ {
+		// If this is a retry and we have a body, we need to reset the request body
+		if attempt > 0 && body != nil {
+			req.Body = io.NopCloser(bytes.NewReader(body))
+		}
+
+		resp, err := s.client.Do(req)
+
+		if err != nil {
+			lastErr = err
+			// Check if the error is retryable
+			if !isRetryableError(err) || attempt == maxRetries {
+				return nil, err
+			}
+		} else {
+			// Check if we should retry based on status code
+			if !isRetryableStatusCode(resp.StatusCode) || attempt == maxRetries {
+				return resp, nil
+			}
+			// Close the response body before retrying to avoid resource leak
+			resp.Body.Close()
+			lastResp = resp
+			lastErr = fmt.Errorf("server returned status %d", resp.StatusCode)
+		}
+
+		// Calculate delay with exponential backoff: delay * 2^attempt
+		delay := time.Duration(retryDelay) * time.Millisecond * (1 << attempt)
+
+		// Add jitter: random value between 0 and 50% of the delay to prevent thundering herd
+		jitter := time.Duration(rand.Int63n(int64(delay / 2)))
+		delay += jitter
+
+		// Wait before retrying, respecting context cancellation
+		select {
+		case <-req.Context().Done():
+			if lastResp != nil {
+				return nil, fmt.Errorf("context cancelled after %d retries: %w", attempt, req.Context().Err())
+			}
+			return nil, fmt.Errorf("context cancelled after %d retries: %w", attempt, req.Context().Err())
+		case <-time.After(delay):
+			// Continue to next retry attempt
+		}
+	}
+
+	return nil, fmt.Errorf("request failed after %d retries: %w", maxRetries, lastErr)
+}
+
 // QueryRequest - function to search for an object.
 func (s *RallyClient) QueryRequest(ctx context.Context, query map[string]string, queryType string, output interface{}) error {
 	baseURL, err := url.Parse(strings.Join([]string{s.apiurl, queryType}, "/"))
@@ -76,7 +167,7 @@ func (s *RallyClient) QueryRequest(ctx context.Context, query map[string]string,
 	}
 	req.Header.Add("ZSESSIONID", s.apikey)
 
-	rallyResponse, err := s.HTTPClient().Do(req)
+	rallyResponse, err := s.doWithRetry(req, nil)
 	if err != nil {
 		return fmt.Errorf("failed to execute request: %w", err)
 	}
@@ -117,7 +208,7 @@ func (s *RallyClient) GetRequest(ctx context.Context, objectID string, queryType
 	}
 	req.Header.Add("ZSESSIONID", s.apikey)
 
-	rallyResponse, err := s.HTTPClient().Do(req)
+	rallyResponse, err := s.doWithRetry(req, nil)
 	if err != nil {
 		return fmt.Errorf("failed to execute request: %w", err)
 	}
@@ -158,7 +249,7 @@ func (s *RallyClient) CreateRequest(ctx context.Context, queryType string, input
 	}
 	req.Header.Add("ZSESSIONID", s.apikey)
 
-	rallyResponse, err := s.HTTPClient().Do(req)
+	rallyResponse, err := s.doWithRetry(req, inputByteArray)
 	if err != nil {
 		return fmt.Errorf("failed to execute request: %w", err)
 	}
@@ -199,7 +290,7 @@ func (s *RallyClient) UpdateRequest(ctx context.Context, objectID string, queryT
 	}
 	req.Header.Add("ZSESSIONID", s.apikey)
 
-	rallyResponse, err := s.HTTPClient().Do(req)
+	rallyResponse, err := s.doWithRetry(req, inputByteArray)
 	if err != nil {
 		return fmt.Errorf("failed to execute request: %w", err)
 	}
@@ -239,7 +330,7 @@ func (s *RallyClient) DeleteRequest(ctx context.Context, objectID string, queryT
 	}
 	req.Header.Add("ZSESSIONID", s.apikey)
 
-	rallyResponse, err := s.HTTPClient().Do(req)
+	rallyResponse, err := s.doWithRetry(req, nil)
 	if err != nil {
 		return fmt.Errorf("failed to execute request: %w", err)
 	}

@@ -19,6 +19,7 @@ package rallyresttoolkit_test
 import (
 	"bytes"
 	"context"
+	"errors"
 	"net/http"
 	"testing"
 
@@ -176,5 +177,160 @@ func TestDeleteRequest_ValidDeleteWithValidAPIKey(t *testing.T) {
 	err := rallyClient.DeleteRequest(ctx, "12345", "hierarchicalrequirement", &fakeOutput)
 	if err != nil {
 		t.Fatalf("DeleteRequest failed unexpectedly: %v", err)
+	}
+}
+
+func TestQueryRequest_RetryOn5xxSuccess(t *testing.T) {
+	// First call returns 500, second call returns 200 (success)
+	fakeClient := &fakes.FakeHTTPClient{
+		FakeResponses: []*http.Response{
+			{
+				StatusCode: http.StatusInternalServerError,
+				Body:       &fakes.FakeResponseBody{Reader: bytes.NewBufferString(`{"OperationResult": {"Errors": ["Server error"]}}`)},
+			},
+			{
+				StatusCode: http.StatusOK,
+				Body:       &fakes.FakeResponseBody{Reader: bytes.NewBufferString(`{"QueryResult": { "TotalResultCount": 1, "Results": [{"FakeValue": "fakeresponse"}]}}`)},
+			},
+		},
+	}
+
+	apiKey := "abcdef"
+	apiURL := "http://myRallyUrl"
+	rallyClient := New(apiKey, apiURL, fakeClient)
+	// Configure retry with minimal delay for faster tests
+	rallyClient.SetConfig(&Config{
+		MaxRetries: 3,
+		RetryDelay: 1, // 1ms for fast tests
+	})
+	ctx := context.Background()
+
+	fakeOutput := new(fakes.FakeOutput)
+	query := map[string]string{
+		"FormattedID": "US624340",
+	}
+
+	err := rallyClient.QueryRequest(ctx, query, "hierarchicalrequirement", &fakeOutput)
+	if err != nil {
+		t.Fatalf("QueryRequest should have succeeded after retry: %v", err)
+	}
+	if fakeClient.CallCount != 2 {
+		t.Errorf("expected 2 calls (1 failure + 1 success), got %d", fakeClient.CallCount)
+	}
+	if fakeOutput.QueryResult.TotalResultCount != 1 {
+		t.Errorf("expected TotalResultCount=1, got %d", fakeOutput.QueryResult.TotalResultCount)
+	}
+}
+
+func TestQueryRequest_NoRetryOn4xx(t *testing.T) {
+	// 400 error should not be retried
+	fakeClient := &fakes.FakeHTTPClient{
+		FakeResponses: []*http.Response{
+			{
+				StatusCode: http.StatusBadRequest,
+				Body:       &fakes.FakeResponseBody{Reader: bytes.NewBufferString(`{"OperationResult": {"Errors": ["Bad request"]}}`)},
+			},
+			{
+				StatusCode: http.StatusOK,
+				Body:       &fakes.FakeResponseBody{Reader: bytes.NewBufferString(`{"QueryResult": { "TotalResultCount": 1}}`)},
+			},
+		},
+	}
+
+	apiKey := "abcdef"
+	apiURL := "http://myRallyUrl"
+	rallyClient := New(apiKey, apiURL, fakeClient)
+	rallyClient.SetConfig(&Config{
+		MaxRetries: 3,
+		RetryDelay: 1,
+	})
+	ctx := context.Background()
+
+	fakeOutput := new(fakes.FakeOutput)
+	query := map[string]string{
+		"FormattedID": "US624340",
+	}
+
+	err := rallyClient.QueryRequest(ctx, query, "hierarchicalrequirement", &fakeOutput)
+	if err == nil {
+		t.Fatal("QueryRequest should have failed on 400 error")
+	}
+	// Should only be called once - no retry on 4xx
+	if fakeClient.CallCount != 1 {
+		t.Errorf("expected 1 call (no retry on 4xx), got %d", fakeClient.CallCount)
+	}
+}
+
+func TestQueryRequest_RetryOnTransientError(t *testing.T) {
+	// First call returns timeout error, second call succeeds
+	fakeClient := &fakes.FakeHTTPClient{
+		FakeResponses: []*http.Response{
+			nil,
+			{
+				StatusCode: http.StatusOK,
+				Body:       &fakes.FakeResponseBody{Reader: bytes.NewBufferString(`{"QueryResult": { "TotalResultCount": 1, "Results": [{"FakeValue": "fakeresponse"}]}}`)},
+			},
+		},
+		FakeErrors: []error{
+			errors.New("connection timeout"),
+			nil,
+		},
+	}
+
+	apiKey := "abcdef"
+	apiURL := "http://myRallyUrl"
+	rallyClient := New(apiKey, apiURL, fakeClient)
+	rallyClient.SetConfig(&Config{
+		MaxRetries: 3,
+		RetryDelay: 1,
+	})
+	ctx := context.Background()
+
+	fakeOutput := new(fakes.FakeOutput)
+	query := map[string]string{
+		"FormattedID": "US624340",
+	}
+
+	err := rallyClient.QueryRequest(ctx, query, "hierarchicalrequirement", &fakeOutput)
+	if err != nil {
+		t.Fatalf("QueryRequest should have succeeded after retry: %v", err)
+	}
+	if fakeClient.CallCount != 2 {
+		t.Errorf("expected 2 calls (1 failure + 1 success), got %d", fakeClient.CallCount)
+	}
+}
+
+func TestQueryRequest_MaxRetriesExceeded(t *testing.T) {
+	// All calls return 500 - should fail after max retries
+	fakeClient := &fakes.FakeHTTPClient{
+		FakeResponses: []*http.Response{
+			{StatusCode: http.StatusInternalServerError, Body: &fakes.FakeResponseBody{Reader: bytes.NewBufferString(`{}`)}},
+			{StatusCode: http.StatusInternalServerError, Body: &fakes.FakeResponseBody{Reader: bytes.NewBufferString(`{}`)}},
+			{StatusCode: http.StatusInternalServerError, Body: &fakes.FakeResponseBody{Reader: bytes.NewBufferString(`{}`)}},
+			{StatusCode: http.StatusInternalServerError, Body: &fakes.FakeResponseBody{Reader: bytes.NewBufferString(`{}`)}},
+		},
+	}
+
+	apiKey := "abcdef"
+	apiURL := "http://myRallyUrl"
+	rallyClient := New(apiKey, apiURL, fakeClient)
+	rallyClient.SetConfig(&Config{
+		MaxRetries: 3, // 1 initial + 3 retries = 4 total attempts
+		RetryDelay: 1,
+	})
+	ctx := context.Background()
+
+	fakeOutput := new(fakes.FakeOutput)
+	query := map[string]string{
+		"FormattedID": "US624340",
+	}
+
+	err := rallyClient.QueryRequest(ctx, query, "hierarchicalrequirement", &fakeOutput)
+	if err == nil {
+		t.Fatal("QueryRequest should have failed after max retries")
+	}
+	// Should be called 4 times: 1 initial + 3 retries
+	if fakeClient.CallCount != 4 {
+		t.Errorf("expected 4 calls (1 initial + 3 retries), got %d", fakeClient.CallCount)
 	}
 }

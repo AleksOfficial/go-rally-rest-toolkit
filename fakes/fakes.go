@@ -79,10 +79,34 @@ type FakeHTTPClient struct {
 	SpyRequest   *http.Request
 	FakeResponse *http.Response
 	FakeError    error
+	// CallCount tracks how many times Do was called (for retry testing)
+	CallCount int
+	// FakeResponses allows returning different responses on subsequent calls (for retry testing)
+	// If set, FakeResponse is ignored and FakeResponses[CallCount] is returned instead
+	FakeResponses []*http.Response
+	// FakeErrors allows returning different errors on subsequent calls (for retry testing)
+	FakeErrors []error
 }
 
 // Do - Fake HTTP client do method
 func (s *FakeHTTPClient) Do(fakeRequest *http.Request) (*http.Response, error) {
 	s.SpyRequest = fakeRequest
+	idx := s.CallCount
+	s.CallCount++
+
+	// If FakeResponses or FakeErrors are set, use them based on call count
+	if len(s.FakeResponses) > 0 || len(s.FakeErrors) > 0 {
+		var resp *http.Response
+		var err error
+
+		if idx < len(s.FakeResponses) {
+			resp = s.FakeResponses[idx]
+		}
+		if idx < len(s.FakeErrors) {
+			err = s.FakeErrors[idx]
+		}
+		return resp, err
+	}
+
 	return s.FakeResponse, s.FakeError
 }
