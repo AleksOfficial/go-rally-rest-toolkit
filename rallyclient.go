@@ -88,7 +88,7 @@ func (s *RallyClient) QueryRequest(ctx context.Context, query map[string]string,
 	}
 
 	if rallyResponse.StatusCode < 200 || rallyResponse.StatusCode >= 300 {
-		return fmt.Errorf("unexpected status code %d: %s", rallyResponse.StatusCode, string(content))
+		return parseRallyError(rallyResponse.StatusCode, content)
 	}
 
 	if err := json.Unmarshal(content, output); err != nil {
@@ -129,7 +129,7 @@ func (s *RallyClient) GetRequest(ctx context.Context, objectID string, queryType
 	}
 
 	if rallyResponse.StatusCode < 200 || rallyResponse.StatusCode >= 300 {
-		return fmt.Errorf("unexpected status code %d: %s", rallyResponse.StatusCode, string(content))
+		return parseRallyError(rallyResponse.StatusCode, content)
 	}
 
 	if err := json.Unmarshal(content, output); err != nil {
@@ -170,7 +170,7 @@ func (s *RallyClient) CreateRequest(ctx context.Context, queryType string, input
 	}
 
 	if rallyResponse.StatusCode < 200 || rallyResponse.StatusCode >= 300 {
-		return fmt.Errorf("unexpected status code %d: %s", rallyResponse.StatusCode, string(content))
+		return parseRallyError(rallyResponse.StatusCode, content)
 	}
 
 	if err := json.Unmarshal(content, output); err != nil {
@@ -211,7 +211,7 @@ func (s *RallyClient) UpdateRequest(ctx context.Context, objectID string, queryT
 	}
 
 	if rallyResponse.StatusCode < 200 || rallyResponse.StatusCode >= 300 {
-		return fmt.Errorf("unexpected status code %d: %s", rallyResponse.StatusCode, string(content))
+		return parseRallyError(rallyResponse.StatusCode, content)
 	}
 
 	if err := json.Unmarshal(content, output); err != nil {
@@ -251,7 +251,7 @@ func (s *RallyClient) DeleteRequest(ctx context.Context, objectID string, queryT
 	}
 
 	if rallyResponse.StatusCode < 200 || rallyResponse.StatusCode >= 300 {
-		return fmt.Errorf("unexpected status code %d: %s", rallyResponse.StatusCode, string(content))
+		return parseRallyError(rallyResponse.StatusCode, content)
 	}
 
 	if err := json.Unmarshal(content, output); err != nil {
