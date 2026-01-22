@@ -17,6 +17,7 @@
 package rallyresttoolkit
 
 import (
+	"context"
 	"strconv"
 
 	"github.com/aleksofficial/go-rally-rest-toolkit/models"
@@ -66,41 +67,41 @@ func NewDefect(client *RallyClient) (de *Defect) {
 }
 
 // QueryDefect - abstraction for QueryRequest
-func (s *Defect) QueryDefect(query map[string]string) (des []models.Defect, err error) {
+func (s *Defect) QueryDefect(ctx context.Context, query map[string]string) (des []models.Defect, err error) {
 	qdes := new(QueryDefectResponse)
-	err = s.client.QueryRequest(query, "defect", &qdes)
+	err = s.client.QueryRequest(ctx, query, "defect", &qdes)
 	return qdes.QueryResult.Results, err
 }
 
 // GetDefect - abstraction for GetRequest
-func (s *Defect) GetDefect(objectID string) (de models.Defect, err error) {
+func (s *Defect) GetDefect(ctx context.Context, objectID string) (de models.Defect, err error) {
 	gde := new(GetDefectResponse)
-	err = s.client.GetRequest(objectID, "defect", &gde)
+	err = s.client.GetRequest(ctx, objectID, "defect", &gde)
 	return gde.Defect, err
 }
 
 // CreateDefect - abstraction for CreateRequest
-func (s *Defect) CreateDefect(de models.Defect) (der models.Defect, err error) {
+func (s *Defect) CreateDefect(ctx context.Context, de models.Defect) (der models.Defect, err error) {
 	createRequest := CreateDefectRequest{
 		Defect: de,
 	}
 	ude := new(CreateDefectResponse)
-	err = s.client.CreateRequest("defect", createRequest, &ude)
+	err = s.client.CreateRequest(ctx, "defect", createRequest, &ude)
 	der = ude.CreateResult.Object
 	return der, err
 }
 
 // UpdateDefect - abstraction for UpdateRequest
-func (s *Defect) UpdateDefect(de models.Defect) (der models.Defect, err error) {
+func (s *Defect) UpdateDefect(ctx context.Context, de models.Defect) (der models.Defect, err error) {
 	ude := new(deOperationResponse)
-	err = s.client.UpdateRequest(strconv.Itoa(de.ObjectID), "Defect", de, &ude)
+	err = s.client.UpdateRequest(ctx, strconv.Itoa(de.ObjectID), "Defect", de, &ude)
 	der = ude.OperationalResult.Object
 	return der, err
 }
 
 // DeleteDefect - abstraction for DeleteRequest
-func (s *Defect) DeleteDefect(objectID string) (err error) {
+func (s *Defect) DeleteDefect(ctx context.Context, objectID string) (err error) {
 	ude := new(deOperationResponse)
-	err = s.client.DeleteRequest(objectID, "defect", &ude)
+	err = s.client.DeleteRequest(ctx, objectID, "defect", &ude)
 	return err
 }

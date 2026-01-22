@@ -18,6 +18,7 @@ package rallyresttoolkit_test
 
 import (
 	"bytes"
+	"context"
 	"net/http"
 	"strconv"
 
@@ -35,6 +36,7 @@ var _ = Describe("HierarchichalRequirement", func() {
 		apiURL      = "http://myRallyUrl"
 		rallyClient *RallyClient
 		hrclient    *HierarchicalRequirement
+		ctx         = context.Background()
 	)
 	Describe(".QueryHierarchicalRequirement", func() {
 
@@ -59,7 +61,7 @@ var _ = Describe("HierarchichalRequirement", func() {
 				query := map[string]string{
 					"FormattedID": fakeFormattedID,
 				}
-				hr, err := hrclient.QueryHierarchicalRequirement(query)
+				hr, err := hrclient.QueryHierarchicalRequirement(ctx, query)
 				Ω(err).ShouldNot(HaveOccurred())
 				Ω(len(hr)).ShouldNot(Equal(0))
 				Ω(hr[0].FormattedID).Should(Equal(fakeFormattedID))
@@ -87,7 +89,7 @@ var _ = Describe("HierarchichalRequirement", func() {
 		})
 		Context("when called with a valid objectID", func() {
 			It("should return the hierarchichal requirement", func() {
-				hr, err := hrclient.GetHierarchicalRequirement(fakeObjectID)
+				hr, err := hrclient.GetHierarchicalRequirement(ctx, fakeObjectID)
 				Ω(err).ShouldNot(HaveOccurred())
 				Ω(hr.ObjectID).Should(Equal(ctrlID))
 			})
@@ -116,7 +118,7 @@ var _ = Describe("HierarchichalRequirement", func() {
 		})
 		Context("when called with a valid create request object", func() {
 			It("should return the HierarchicalRequirement object created", func() {
-				hr, err := hrclient.CreateHierarchicalRequirement(newHrModel)
+				hr, err := hrclient.CreateHierarchicalRequirement(ctx, newHrModel)
 				Ω(err).ShouldNot(HaveOccurred())
 				Ω(hr.Name).Should(Equal(ctrlName))
 			})
@@ -146,7 +148,7 @@ var _ = Describe("HierarchichalRequirement", func() {
 
 		Context("when called with a valid update request object", func() {
 			It("should return the HierarchicalRequirement object updated", func() {
-				hr, err := hrclient.UpdateHierarchicalRequirement(updateHrModel)
+				hr, err := hrclient.UpdateHierarchicalRequirement(ctx, updateHrModel)
 				Ω(err).ShouldNot(HaveOccurred())
 				Ω(hr.Name).Should(Equal(ctrlName))
 			})
@@ -172,7 +174,7 @@ var _ = Describe("HierarchichalRequirement", func() {
 		})
 		Context("when called with a valid delete objectID", func() {
 			It("should return the correct operationalresponse struct", func() {
-				err := hrclient.DeleteHierarchicalRequirement(fakeObjectID)
+				err := hrclient.DeleteHierarchicalRequirement(ctx, fakeObjectID)
 				Ω(err).ShouldNot(HaveOccurred())
 			})
 		})

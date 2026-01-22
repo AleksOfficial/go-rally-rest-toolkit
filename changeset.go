@@ -17,6 +17,7 @@
 package rallyresttoolkit
 
 import (
+	"context"
 	"strconv"
 
 	"github.com/aleksofficial/go-rally-rest-toolkit/models"
@@ -66,41 +67,41 @@ func NewChangeset(client *RallyClient) (cs *Changeset) {
 }
 
 // QueryChangeset - abstraction for QueryRequest
-func (s *Changeset) QueryChangeset(query map[string]string) (des []models.Changeset, err error) {
+func (s *Changeset) QueryChangeset(ctx context.Context, query map[string]string) (des []models.Changeset, err error) {
 	qdes := new(QueryChangesetResponse)
-	err = s.client.QueryRequest(query, "changeset", &qdes)
+	err = s.client.QueryRequest(ctx, query, "changeset", &qdes)
 	return qdes.QueryResult.Results, err
 }
 
 // GetChangeset - abstraction for GetRequest
-func (s *Changeset) GetChangeset(objectID string) (de models.Changeset, err error) {
+func (s *Changeset) GetChangeset(ctx context.Context, objectID string) (de models.Changeset, err error) {
 	gde := new(GetChangesetResponse)
-	err = s.client.GetRequest(objectID, "changeset", &gde)
+	err = s.client.GetRequest(ctx, objectID, "changeset", &gde)
 	return gde.Changeset, err
 }
 
 // CreateChangeset - abstraction for CreateRequest
-func (s *Changeset) CreateChangeset(changeset models.Changeset) (der models.Changeset, err error) {
+func (s *Changeset) CreateChangeset(ctx context.Context, changeset models.Changeset) (der models.Changeset, err error) {
 	createRequest := CreateChangesetRequest{
 		Changeset: changeset,
 	}
 	ude := new(CreateChangesetResponse)
-	err = s.client.CreateRequest("changeset", createRequest, &ude)
+	err = s.client.CreateRequest(ctx, "changeset", createRequest, &ude)
 	der = ude.CreateResult.Object
 	return der, err
 }
 
 // UpdateChangeset - abstraction for UpdateRequest
-func (s *Changeset) UpdateChangeset(changeset models.Changeset) (changesetr models.Changeset, err error) {
+func (s *Changeset) UpdateChangeset(ctx context.Context, changeset models.Changeset) (changesetr models.Changeset, err error) {
 	ude := new(changesetOperationResponse)
-	err = s.client.UpdateRequest(strconv.Itoa(changeset.ObjectID), "changeset", changeset, &ude)
+	err = s.client.UpdateRequest(ctx, strconv.Itoa(changeset.ObjectID), "changeset", changeset, &ude)
 	changesetr = ude.OperationalResult.Object
 	return changesetr, err
 }
 
 // DeleteChangeset - abstraction for DeleteRequest
-func (s *Changeset) DeleteChangeset(objectID string) (err error) {
+func (s *Changeset) DeleteChangeset(ctx context.Context, objectID string) (err error) {
 	ude := new(deOperationResponse)
-	err = s.client.DeleteRequest(objectID, "changeset", &ude)
+	err = s.client.DeleteRequest(ctx, objectID, "changeset", &ude)
 	return err
 }

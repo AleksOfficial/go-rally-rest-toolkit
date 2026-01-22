@@ -18,6 +18,7 @@ package rallyresttoolkit
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -54,7 +55,7 @@ func (s *RallyClient) HTTPClient() ClientDoer {
 }
 
 // QueryRequest - function to search for an object.
-func (s *RallyClient) QueryRequest(query map[string]string, queryType string, output interface{}) (err error) {
+func (s *RallyClient) QueryRequest(ctx context.Context, query map[string]string, queryType string, output interface{}) (err error) {
 
 	baseURL, _ := url.Parse(strings.Join([]string{s.apiurl, queryType}, "/"))
 
@@ -67,7 +68,7 @@ func (s *RallyClient) QueryRequest(query map[string]string, queryType string, ou
 
 	urlStr := fmt.Sprintf("%v", baseURL)
 
-	req, _ := http.NewRequest("GET", urlStr, nil)
+	req, _ := http.NewRequestWithContext(ctx, "GET", urlStr, nil)
 	req.Header.Add("ZSESSIONID", s.apikey)
 	if rallyResponse, err := s.HTTPClient().Do(req); err == nil {
 		content, _ := io.ReadAll(rallyResponse.Body)
@@ -79,7 +80,7 @@ func (s *RallyClient) QueryRequest(query map[string]string, queryType string, ou
 }
 
 // GetRequest - Function to perform GET requests when objectID is known.
-func (s *RallyClient) GetRequest(objectID string, queryType string, output interface{}) (err error) {
+func (s *RallyClient) GetRequest(ctx context.Context, objectID string, queryType string, output interface{}) (err error) {
 	baseURL, _ := url.Parse(strings.Join([]string{s.apiurl, queryType, objectID}, "/"))
 
 	params := url.Values{}
@@ -88,7 +89,7 @@ func (s *RallyClient) GetRequest(objectID string, queryType string, output inter
 
 	urlStr := fmt.Sprintf("%v", baseURL)
 
-	req, _ := http.NewRequest("GET", urlStr, nil)
+	req, _ := http.NewRequestWithContext(ctx, "GET", urlStr, nil)
 	req.Header.Add("ZSESSIONID", s.apikey)
 
 	if rallyResponse, err := s.HTTPClient().Do(req); err == nil {
@@ -100,13 +101,13 @@ func (s *RallyClient) GetRequest(objectID string, queryType string, output inter
 	return nil
 }
 
-func (s *RallyClient) CreateRequest(queryType string, input interface{}, output interface{}) (err error) {
+func (s *RallyClient) CreateRequest(ctx context.Context, queryType string, input interface{}, output interface{}) (err error) {
 	baseURL, _ := url.Parse(strings.Join([]string{s.apiurl, queryType, "create"}, "/"))
 
 	urlStr := fmt.Sprintf("%v", baseURL)
 
 	inputByteArray, err := json.Marshal(input)
-	req, _ := http.NewRequest("POST", urlStr, bytes.NewReader(inputByteArray))
+	req, _ := http.NewRequestWithContext(ctx, "POST", urlStr, bytes.NewReader(inputByteArray))
 	req.Header.Add("ZSESSIONID", s.apikey)
 
 	if rallyResponse, err := s.HTTPClient().Do(req); err == nil {
@@ -118,13 +119,13 @@ func (s *RallyClient) CreateRequest(queryType string, input interface{}, output 
 	return nil
 }
 
-func (s *RallyClient) UpdateRequest(objectID string, queryType string, input interface{}, output interface{}) (err error) {
+func (s *RallyClient) UpdateRequest(ctx context.Context, objectID string, queryType string, input interface{}, output interface{}) (err error) {
 	baseURL, _ := url.Parse(strings.Join([]string{s.apiurl, queryType, objectID}, "/"))
 
 	urlStr := fmt.Sprintf("%v", baseURL)
 
 	inputByteArray, err := json.Marshal(input)
-	req, _ := http.NewRequest("POST", urlStr, bytes.NewReader(inputByteArray))
+	req, _ := http.NewRequestWithContext(ctx, "POST", urlStr, bytes.NewReader(inputByteArray))
 	req.Header.Add("ZSESSIONID", s.apikey)
 
 	if rallyResponse, err := s.HTTPClient().Do(req); err == nil {
@@ -136,7 +137,7 @@ func (s *RallyClient) UpdateRequest(objectID string, queryType string, input int
 	return nil
 }
 
-func (s *RallyClient) DeleteRequest(objectID string, queryType string, output interface{}) (err error) {
+func (s *RallyClient) DeleteRequest(ctx context.Context, objectID string, queryType string, output interface{}) (err error) {
 	baseURL, _ := url.Parse(strings.Join([]string{s.apiurl, queryType, objectID}, "/"))
 
 	params := url.Values{}
@@ -145,7 +146,7 @@ func (s *RallyClient) DeleteRequest(objectID string, queryType string, output in
 
 	urlStr := fmt.Sprintf("%v", baseURL)
 
-	req, _ := http.NewRequest("DELETE", urlStr, nil)
+	req, _ := http.NewRequestWithContext(ctx, "DELETE", urlStr, nil)
 	req.Header.Add("ZSESSIONID", s.apikey)
 
 	if rallyResponse, err := s.HTTPClient().Do(req); err == nil {

@@ -18,6 +18,7 @@ package rallyresttoolkit_test
 
 import (
 	"bytes"
+	"context"
 	"net/http"
 	"strconv"
 
@@ -35,6 +36,7 @@ var _ = Describe("Defect", func() {
 		apiURL      = "http://myRallyUrl"
 		rallyClient *RallyClient
 		hrclient    *Defect
+		ctx         = context.Background()
 	)
 	Describe(".QueryDefect", func() {
 
@@ -59,7 +61,7 @@ var _ = Describe("Defect", func() {
 				query := map[string]string{
 					"FormattedID": fakeFormattedID,
 				}
-				hr, err := hrclient.QueryDefect(query)
+				hr, err := hrclient.QueryDefect(ctx, query)
 				Ω(err).ShouldNot(HaveOccurred())
 				Ω(len(hr)).ShouldNot(Equal(0))
 				Ω(hr[0].FormattedID).Should(Equal(fakeFormattedID))
@@ -87,7 +89,7 @@ var _ = Describe("Defect", func() {
 		})
 		Context("when called with a valid objectID", func() {
 			It("should return the Defect", func() {
-				hr, err := hrclient.GetDefect(fakeObjectID)
+				hr, err := hrclient.GetDefect(ctx, fakeObjectID)
 				Ω(err).ShouldNot(HaveOccurred())
 				Ω(hr.ObjectID).Should(Equal(ctrlID))
 			})
@@ -116,7 +118,7 @@ var _ = Describe("Defect", func() {
 		})
 		Context("when called with a valid create request object", func() {
 			It("should return the Defect object created", func() {
-				hr, err := hrclient.CreateDefect(newHrModel)
+				hr, err := hrclient.CreateDefect(ctx, newHrModel)
 				Ω(err).ShouldNot(HaveOccurred())
 				Ω(hr.Name).Should(Equal(ctrlName))
 			})
@@ -146,7 +148,7 @@ var _ = Describe("Defect", func() {
 
 		Context("when called with a valid update request object", func() {
 			It("should return the Defect object updated", func() {
-				hr, err := hrclient.UpdateDefect(updateHrModel)
+				hr, err := hrclient.UpdateDefect(ctx, updateHrModel)
 				Ω(err).ShouldNot(HaveOccurred())
 				Ω(hr.Name).Should(Equal(ctrlName))
 			})
@@ -172,7 +174,7 @@ var _ = Describe("Defect", func() {
 		})
 		Context("when called with a valid delete objectID", func() {
 			It("should return the correct operationalresponse struct", func() {
-				err := hrclient.DeleteDefect(fakeObjectID)
+				err := hrclient.DeleteDefect(ctx, fakeObjectID)
 				Ω(err).ShouldNot(HaveOccurred())
 			})
 		})

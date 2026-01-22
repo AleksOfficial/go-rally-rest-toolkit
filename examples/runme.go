@@ -17,6 +17,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"os"
@@ -49,6 +50,7 @@ type OperationResponse struct {
 }
 
 func main() {
+	ctx := context.Background()
 
 	rallyURL := "https://rally1.rallydev.com/slm/webservice/v2.0"
 	apiKey := os.Getenv("API_KEY")
@@ -61,7 +63,7 @@ func main() {
 	}
 
 	output := new(QueryHR)
-	err := rallyClient.QueryRequest(query, "hierarchicalrequirement", &output)
+	err := rallyClient.QueryRequest(ctx, query, "hierarchicalrequirement", &output)
 
 	if err == nil {
 		fmt.Printf("output: %v \n", output)
@@ -70,7 +72,7 @@ func main() {
 	}
 
 	moarOutput := new(GetHR)
-	err = rallyClient.GetRequest("29227987232", "hierarchicalrequirement", &moarOutput)
+	err = rallyClient.GetRequest(ctx, "29227987232", "hierarchicalrequirement", &moarOutput)
 
 	if err == nil {
 		fmt.Printf("MOAR output: %v \n", moarOutput)
@@ -100,7 +102,7 @@ func main() {
 
 	createResponse := new(CreateResponse)
 
-	err = rallyClient.CreateRequest("defect", defectRequest, &createResponse)
+	err = rallyClient.CreateRequest(ctx, "defect", defectRequest, &createResponse)
 
 	object := createResponse.CreateResult["Object"].(map[string]interface{})
 	resultID := object["ObjectID"].(float64)
@@ -115,7 +117,7 @@ func main() {
 	}
 
 	updateResponse := new(OperationResponse)
-	_ = rallyClient.UpdateRequest(objectID, "defect", updateDefect, &updateResponse)
+	_ = rallyClient.UpdateRequest(ctx, objectID, "defect", updateDefect, &updateResponse)
 
-	_ = rallyClient.DeleteRequest(objectID, "defect", &updateResponse)
+	_ = rallyClient.DeleteRequest(ctx, objectID, "defect", &updateResponse)
 }

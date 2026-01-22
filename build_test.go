@@ -18,6 +18,7 @@ package rallyresttoolkit_test
 
 import (
 	"bytes"
+	"context"
 	"net/http"
 	"strconv"
 
@@ -35,6 +36,7 @@ var _ = Describe("Build", func() {
 		apiURL      = "http://myRallyUrl"
 		rallyClient *RallyClient
 		hrclient    *Build
+		ctx         = context.Background()
 	)
 	Describe(".QueryBuild", func() {
 
@@ -59,7 +61,7 @@ var _ = Describe("Build", func() {
 				query := map[string]string{
 					"Message": fakeName,
 				}
-				hr, err := hrclient.QueryBuild(query)
+				hr, err := hrclient.QueryBuild(ctx, query)
 				Ω(err).ShouldNot(HaveOccurred())
 				Ω(len(hr)).ShouldNot(Equal(0))
 				Ω(hr[0].Message).Should(Equal(fakeName))
@@ -87,7 +89,7 @@ var _ = Describe("Build", func() {
 		})
 		Context("when called with a valid objectID", func() {
 			It("should return the build", func() {
-				hr, err := hrclient.GetBuild(fakeObjectID)
+				hr, err := hrclient.GetBuild(ctx, fakeObjectID)
 				Ω(err).ShouldNot(HaveOccurred())
 				Ω(hr.ObjectID).Should(Equal(ctrlID))
 			})
@@ -116,7 +118,7 @@ var _ = Describe("Build", func() {
 		})
 		Context("when called with a valid create request object", func() {
 			It("should return the build object created", func() {
-				hr, err := hrclient.CreateBuild(newHrModel)
+				hr, err := hrclient.CreateBuild(ctx, newHrModel)
 				Ω(err).ShouldNot(HaveOccurred())
 				Ω(hr.Message).Should(Equal(ctrlName))
 			})
@@ -146,7 +148,7 @@ var _ = Describe("Build", func() {
 
 		Context("when called with a valid update request object", func() {
 			It("should return the build object updated", func() {
-				hr, err := hrclient.UpdateBuild(updateHrModel)
+				hr, err := hrclient.UpdateBuild(ctx, updateHrModel)
 				Ω(err).ShouldNot(HaveOccurred())
 				Ω(hr.Message).Should(Equal(ctrlName))
 			})
@@ -172,7 +174,7 @@ var _ = Describe("Build", func() {
 		})
 		Context("when called with a valid delete objectID", func() {
 			It("should return the correct operationalresponse struct", func() {
-				err := hrclient.DeleteBuild(fakeObjectID)
+				err := hrclient.DeleteBuild(ctx, fakeObjectID)
 				Ω(err).ShouldNot(HaveOccurred())
 			})
 		})

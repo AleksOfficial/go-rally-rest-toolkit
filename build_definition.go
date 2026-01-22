@@ -17,6 +17,7 @@
 package rallyresttoolkit
 
 import (
+	"context"
 	"strconv"
 
 	"github.com/aleksofficial/go-rally-rest-toolkit/models"
@@ -66,41 +67,41 @@ func NewBuildDefinition(client *RallyClient) (de *BuildDefinition) {
 }
 
 // QueryBuildDefinition - abstraction for QueryRequest
-func (s *BuildDefinition) QueryBuildDefinition(query map[string]string) (des []models.BuildDefinition, err error) {
+func (s *BuildDefinition) QueryBuildDefinition(ctx context.Context, query map[string]string) (des []models.BuildDefinition, err error) {
 	qdes := new(QueryBuildDefinitionResponse)
-	err = s.client.QueryRequest(query, "buildDefinition", &qdes)
+	err = s.client.QueryRequest(ctx, query, "buildDefinition", &qdes)
 	return qdes.QueryResult.Results, err
 }
 
 // GetBuildDefinition - abstraction for GetRequest
-func (s *BuildDefinition) GetBuildDefinition(objectID string) (de models.BuildDefinition, err error) {
+func (s *BuildDefinition) GetBuildDefinition(ctx context.Context, objectID string) (de models.BuildDefinition, err error) {
 	gde := new(GetBuildDefinitionResponse)
-	err = s.client.GetRequest(objectID, "buildDefinition", &gde)
+	err = s.client.GetRequest(ctx, objectID, "buildDefinition", &gde)
 	return gde.BuildDefinition, err
 }
 
 // CreateBuildDefinition - abstraction for CreateRequest
-func (s *BuildDefinition) CreateBuildDefinition(buildDefinition models.BuildDefinition) (der models.BuildDefinition, err error) {
+func (s *BuildDefinition) CreateBuildDefinition(ctx context.Context, buildDefinition models.BuildDefinition) (der models.BuildDefinition, err error) {
 	createRequest := CreateBuildDefinitionRequest{
 		BuildDefinition: buildDefinition,
 	}
 	ude := new(CreateBuildDefinitionResponse)
-	err = s.client.CreateRequest("buildDefinition", createRequest, &ude)
+	err = s.client.CreateRequest(ctx, "buildDefinition", createRequest, &ude)
 	der = ude.CreateResult.Object
 	return der, err
 }
 
 // UpdateBuildDefinition - abstraction for UpdateRequest
-func (s *BuildDefinition) UpdateBuildDefinition(buildDefinition models.BuildDefinition) (buildDefinitionr models.BuildDefinition, err error) {
+func (s *BuildDefinition) UpdateBuildDefinition(ctx context.Context, buildDefinition models.BuildDefinition) (buildDefinitionr models.BuildDefinition, err error) {
 	ude := new(buildDefinitionOperationResponse)
-	err = s.client.UpdateRequest(strconv.Itoa(buildDefinition.ObjectID), "buildDefinition", buildDefinition, &ude)
+	err = s.client.UpdateRequest(ctx, strconv.Itoa(buildDefinition.ObjectID), "buildDefinition", buildDefinition, &ude)
 	buildDefinitionr = ude.OperationalResult.Object
 	return buildDefinitionr, err
 }
 
 // DeleteBuildDefinition - abstraction for DeleteRequest
-func (s *BuildDefinition) DeleteBuildDefinition(objectID string) (err error) {
+func (s *BuildDefinition) DeleteBuildDefinition(ctx context.Context, objectID string) (err error) {
 	ude := new(deOperationResponse)
-	err = s.client.DeleteRequest(objectID, "buildDefinition", &ude)
+	err = s.client.DeleteRequest(ctx, objectID, "buildDefinition", &ude)
 	return err
 }

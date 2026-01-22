@@ -18,6 +18,7 @@ package rallyresttoolkit_test
 
 import (
 	"bytes"
+	"context"
 	"net/http"
 	"strconv"
 
@@ -35,6 +36,7 @@ var _ = Describe("Changeset", func() {
 		apiURL      = "http://myRallyUrl"
 		rallyClient *RallyClient
 		hrclient    *Changeset
+		ctx         = context.Background()
 	)
 	Describe(".QueryChangeset", func() {
 
@@ -59,7 +61,7 @@ var _ = Describe("Changeset", func() {
 				query := map[string]string{
 					"Message": fakeMessage,
 				}
-				hr, err := hrclient.QueryChangeset(query)
+				hr, err := hrclient.QueryChangeset(ctx, query)
 				Ω(err).ShouldNot(HaveOccurred())
 				Ω(len(hr)).ShouldNot(Equal(0))
 				Ω(hr[0].Message).Should(Equal(fakeMessage))
@@ -87,7 +89,7 @@ var _ = Describe("Changeset", func() {
 		})
 		Context("when called with a valid objectID", func() {
 			It("should return the Changeset", func() {
-				hr, err := hrclient.GetChangeset(fakeObjectID)
+				hr, err := hrclient.GetChangeset(ctx, fakeObjectID)
 				Ω(err).ShouldNot(HaveOccurred())
 				Ω(hr.ObjectID).Should(Equal(ctrlID))
 			})
@@ -116,7 +118,7 @@ var _ = Describe("Changeset", func() {
 		})
 		Context("when called with a valid create request object", func() {
 			It("should return the Changeset object created", func() {
-				hr, err := hrclient.CreateChangeset(newHrModel)
+				hr, err := hrclient.CreateChangeset(ctx, newHrModel)
 				Ω(err).ShouldNot(HaveOccurred())
 				Ω(hr.Name).Should(Equal(ctrlName))
 			})
@@ -146,7 +148,7 @@ var _ = Describe("Changeset", func() {
 
 		Context("when called with a valid update request object", func() {
 			It("should return the Changeset object updated", func() {
-				hr, err := hrclient.UpdateChangeset(updateHrModel)
+				hr, err := hrclient.UpdateChangeset(ctx, updateHrModel)
 				Ω(err).ShouldNot(HaveOccurred())
 				Ω(hr.Name).Should(Equal(ctrlName))
 			})
@@ -172,7 +174,7 @@ var _ = Describe("Changeset", func() {
 		})
 		Context("when called with a valid delete objectID", func() {
 			It("should return the correct operationalresponse struct", func() {
-				err := hrclient.DeleteChangeset(fakeObjectID)
+				err := hrclient.DeleteChangeset(ctx, fakeObjectID)
 				Ω(err).ShouldNot(HaveOccurred())
 			})
 		})

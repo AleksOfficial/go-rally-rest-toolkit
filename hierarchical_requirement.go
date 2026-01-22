@@ -17,6 +17,7 @@
 package rallyresttoolkit
 
 import (
+	"context"
 	"strconv"
 
 	"github.com/aleksofficial/go-rally-rest-toolkit/models"
@@ -68,44 +69,44 @@ func NewHierarchicalRequirement(client *RallyClient) (hr *HierarchicalRequiremen
 }
 
 // QueryHierarchicalRequirement - abstraction for QueryRequest
-func (s *HierarchicalRequirement) QueryHierarchicalRequirement(query map[string]string) (hrs []models.HierarchicalRequirement, err error) {
+func (s *HierarchicalRequirement) QueryHierarchicalRequirement(ctx context.Context, query map[string]string) (hrs []models.HierarchicalRequirement, err error) {
 	qhrs := new(QueryHierarchicalRequirementResponse)
-	err = s.client.QueryRequest(query, "HierarchicalRequirement", &qhrs)
+	err = s.client.QueryRequest(ctx, query, "HierarchicalRequirement", &qhrs)
 	return qhrs.QueryResult.Results, err
 }
 
 // GetHierarchicalRequirement - abstraction for GetRequest
-func (s *HierarchicalRequirement) GetHierarchicalRequirement(objectID string) (hr models.HierarchicalRequirement, err error) {
+func (s *HierarchicalRequirement) GetHierarchicalRequirement(ctx context.Context, objectID string) (hr models.HierarchicalRequirement, err error) {
 	ghr := new(GetHierarchicalRequirementResponse)
-	err = s.client.GetRequest(objectID, "HierarchicalRequirement", &ghr)
+	err = s.client.GetRequest(ctx, objectID, "HierarchicalRequirement", &ghr)
 	return ghr.HierarchicalRequirement, err
 }
 
 // CreateHierarchicalRequirement - abstraction for CreateRequest
-func (s *HierarchicalRequirement) CreateHierarchicalRequirement(hr models.HierarchicalRequirement) (hrr models.HierarchicalRequirement, err error) {
+func (s *HierarchicalRequirement) CreateHierarchicalRequirement(ctx context.Context, hr models.HierarchicalRequirement) (hrr models.HierarchicalRequirement, err error) {
 	createRequest := HierarchicalRequirementRequest{
 		HierarchicalRequirement: hr,
 	}
 	uhr := new(CreateHierarchicalRequirementResponse)
-	err = s.client.CreateRequest("HierarchicalRequirement", createRequest, &uhr)
+	err = s.client.CreateRequest(ctx, "HierarchicalRequirement", createRequest, &uhr)
 	hrr = uhr.CreateResult.Object
 	return hrr, err
 }
 
 // UpdateHierarchicalRequirement - abstraction for UpdateRequest
-func (s *HierarchicalRequirement) UpdateHierarchicalRequirement(hr models.HierarchicalRequirement) (hrr models.HierarchicalRequirement, err error) {
+func (s *HierarchicalRequirement) UpdateHierarchicalRequirement(ctx context.Context, hr models.HierarchicalRequirement) (hrr models.HierarchicalRequirement, err error) {
 	updateRequest := HierarchicalRequirementRequest{
 		HierarchicalRequirement: hr,
 	}
 	uhr := new(OperationResponse)
-	err = s.client.UpdateRequest(strconv.Itoa(hr.ObjectID), "HierarchicalRequirement", updateRequest, &uhr)
+	err = s.client.UpdateRequest(ctx, strconv.Itoa(hr.ObjectID), "HierarchicalRequirement", updateRequest, &uhr)
 	hrr = uhr.OperationalResult.Object
 	return hrr, err
 }
 
 // DeleteHierarchicalRequirement - abstraction for DeleteRequest
-func (s *HierarchicalRequirement) DeleteHierarchicalRequirement(objectID string) (err error) {
+func (s *HierarchicalRequirement) DeleteHierarchicalRequirement(ctx context.Context, objectID string) (err error) {
 	uhr := new(OperationResponse)
-	err = s.client.DeleteRequest(objectID, "HierarchicalRequirement", &uhr)
+	err = s.client.DeleteRequest(ctx, objectID, "HierarchicalRequirement", &uhr)
 	return err
 }

@@ -18,6 +18,7 @@ package rallyresttoolkit_test
 
 import (
 	"bytes"
+	"context"
 	"net/http"
 	"strconv"
 
@@ -35,6 +36,7 @@ var _ = Describe("BuildDefinition", func() {
 		apiURL      = "http://myRallyUrl"
 		rallyClient *RallyClient
 		hrclient    *BuildDefinition
+		ctx         = context.Background()
 	)
 	Describe(".QueryBuildDefinition", func() {
 
@@ -59,7 +61,7 @@ var _ = Describe("BuildDefinition", func() {
 				query := map[string]string{
 					"Name": fakeName,
 				}
-				hr, err := hrclient.QueryBuildDefinition(query)
+				hr, err := hrclient.QueryBuildDefinition(ctx, query)
 				Ω(err).ShouldNot(HaveOccurred())
 				Ω(len(hr)).ShouldNot(Equal(0))
 				Ω(hr[0].Name).Should(Equal(fakeName))
@@ -87,7 +89,7 @@ var _ = Describe("BuildDefinition", func() {
 		})
 		Context("when called with a valid objectID", func() {
 			It("should return the BuildDefinition", func() {
-				hr, err := hrclient.GetBuildDefinition(fakeObjectID)
+				hr, err := hrclient.GetBuildDefinition(ctx, fakeObjectID)
 				Ω(err).ShouldNot(HaveOccurred())
 				Ω(hr.ObjectID).Should(Equal(ctrlID))
 			})
@@ -116,7 +118,7 @@ var _ = Describe("BuildDefinition", func() {
 		})
 		Context("when called with a valid create request object", func() {
 			It("should return the BuildDefinition object created", func() {
-				hr, err := hrclient.CreateBuildDefinition(newHrModel)
+				hr, err := hrclient.CreateBuildDefinition(ctx, newHrModel)
 				Ω(err).ShouldNot(HaveOccurred())
 				Ω(hr.Name).Should(Equal(ctrlName))
 			})
@@ -146,7 +148,7 @@ var _ = Describe("BuildDefinition", func() {
 
 		Context("when called with a valid update request object", func() {
 			It("should return the BuildDefinition object updated", func() {
-				hr, err := hrclient.UpdateBuildDefinition(updateHrModel)
+				hr, err := hrclient.UpdateBuildDefinition(ctx, updateHrModel)
 				Ω(err).ShouldNot(HaveOccurred())
 				Ω(hr.Name).Should(Equal(ctrlName))
 			})
@@ -172,7 +174,7 @@ var _ = Describe("BuildDefinition", func() {
 		})
 		Context("when called with a valid delete objectID", func() {
 			It("should return the correct operationalresponse struct", func() {
-				err := hrclient.DeleteBuildDefinition(fakeObjectID)
+				err := hrclient.DeleteBuildDefinition(ctx, fakeObjectID)
 				Ω(err).ShouldNot(HaveOccurred())
 			})
 		})

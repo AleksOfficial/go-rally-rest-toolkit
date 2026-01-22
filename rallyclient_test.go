@@ -18,6 +18,7 @@ package rallyresttoolkit_test
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"net/http"
 
@@ -34,6 +35,7 @@ var _ = Describe("RallyClient", func() {
 		apiKey        string
 		apiURL        = "http://myRallyUrl"
 		rallyClient   *RallyClient
+		ctx           = context.Background()
 	)
 	Describe(".QueryRequest(string, string, interface) error", func() {
 		var (
@@ -59,7 +61,7 @@ var _ = Describe("RallyClient", func() {
 				query := map[string]string{
 					"FormattedID": fakeFormattedID,
 				}
-				err = rallyClient.QueryRequest(query, fakeQueryType, &fakeOutput)
+				err = rallyClient.QueryRequest(ctx, query, fakeQueryType, &fakeOutput)
 				fmt.Printf("FakeOutput: %v\n", fakeOutput.QueryResult.TotalResultCount)
 				Ω(err).ShouldNot(HaveOccurred())
 				Ω(fakeOutput.QueryResult.TotalResultCount).Should(Equal(ctrlResultCnt))
@@ -73,7 +75,7 @@ var _ = Describe("RallyClient", func() {
 				query := map[string]string{
 					"FormattedID": fakeFormattedID,
 				}
-				err = rallyClient.QueryRequest(query, fakeQueryType, &fakeResult)
+				err = rallyClient.QueryRequest(ctx, query, fakeQueryType, &fakeResult)
 				fmt.Printf("Error: %v\n", err.Error())
 				Ω(err).Should(HaveOccurred())
 			})
@@ -100,7 +102,7 @@ var _ = Describe("RallyClient", func() {
 			It("should return the results to the caller", func() {
 				apiKey = "abcdef"
 				rallyClient = New(apiKey, apiURL, fakeClient)
-				err = rallyClient.GetRequest(fakeObjectID, fakeQueryType, &fakeOutput)
+				err = rallyClient.GetRequest(ctx, fakeObjectID, fakeQueryType, &fakeOutput)
 				fmt.Printf("FakeOutput: %v\n", fakeOutput.QueryResult.TotalResultCount)
 				Ω(err).ShouldNot(HaveOccurred())
 				Ω(fakeOutput.QueryResult.TotalResultCount).Should(Equal(ctrlResultCnt))
@@ -111,7 +113,7 @@ var _ = Describe("RallyClient", func() {
 				apiKey = "abcdef"
 				fakeResult = new(fakes.FakeResult)
 				rallyClient = New(apiKey, apiURL, fakeClient)
-				err = rallyClient.GetRequest(fakeObjectID, fakeQueryType, &fakeResult)
+				err = rallyClient.GetRequest(ctx, fakeObjectID, fakeQueryType, &fakeResult)
 				fmt.Printf("Error: %v\n", err.Error())
 				Ω(err).Should(HaveOccurred())
 			})
@@ -141,7 +143,7 @@ var _ = Describe("RallyClient", func() {
 			It("should return the results to the caller", func() {
 				apiKey = "abcdef"
 				rallyClient = New(apiKey, apiURL, fakeClient)
-				err = rallyClient.CreateRequest(fakeCreateType, fakeCreateRequest, &fakeOutput)
+				err = rallyClient.CreateRequest(ctx, fakeCreateType, fakeCreateRequest, &fakeOutput)
 				fmt.Printf("FakeOutput: %v\n", fakeOutput.CreateResult)
 				Ω(err).ShouldNot(HaveOccurred())
 				Ω(fakeOutput.CreateResult.FakeObject["Field1"]).Should(Equal("demostring"))
@@ -174,7 +176,7 @@ var _ = Describe("RallyClient", func() {
 			It("should return an error to the caller", func() {
 				apiKey = "abcdef"
 				rallyClient = New(apiKey, apiURL, fakeClient)
-				err = rallyClient.UpdateRequest("12345", fakeUpdateType, fakeUpdateRequest, &fakeOutput)
+				err = rallyClient.UpdateRequest(ctx, "12345", fakeUpdateType, fakeUpdateRequest, &fakeOutput)
 				fmt.Printf("FakeOutput: %v\n", fakeOutput.OperationResult)
 				Ω(err).ShouldNot(HaveOccurred())
 				Ω(fakeOutput.OperationResult.FakeObject["Field1"]).Should(Equal("demostring"))
@@ -206,7 +208,7 @@ var _ = Describe("RallyClient", func() {
 			It("should return the correct response to the caller", func() {
 				apiKey = "abcdef"
 				rallyClient = New(apiKey, apiURL, fakeClient)
-				err = rallyClient.DeleteRequest("12345", fakeDeleteType, &fakeOutput)
+				err = rallyClient.DeleteRequest(ctx, "12345", fakeDeleteType, &fakeOutput)
 				fmt.Printf("FakeOutput: %v\n", fakeOutput.OperationResult)
 				Ω(err).ShouldNot(HaveOccurred())
 			})

@@ -17,6 +17,7 @@
 package rallyresttoolkit
 
 import (
+	"context"
 	"strconv"
 
 	"github.com/aleksofficial/go-rally-rest-toolkit/models"
@@ -66,41 +67,41 @@ func NewTask(client *RallyClient) (de *Task) {
 }
 
 // QueryTask - abstraction for QueryRequest
-func (s *Task) QueryTask(query map[string]string) (des []models.Task, err error) {
+func (s *Task) QueryTask(ctx context.Context, query map[string]string) (des []models.Task, err error) {
 	qdes := new(QueryTaskResponse)
-	err = s.client.QueryRequest(query, "task", &qdes)
+	err = s.client.QueryRequest(ctx, query, "task", &qdes)
 	return qdes.QueryResult.Results, err
 }
 
 // GetTask - abstraction for GetRequest
-func (s *Task) GetTask(objectID string) (de models.Task, err error) {
+func (s *Task) GetTask(ctx context.Context, objectID string) (de models.Task, err error) {
 	gde := new(GetTaskResponse)
-	err = s.client.GetRequest(objectID, "task", &gde)
+	err = s.client.GetRequest(ctx, objectID, "task", &gde)
 	return gde.Task, err
 }
 
 // CreateTask - abstraction for CreateRequest
-func (s *Task) CreateTask(task models.Task) (der models.Task, err error) {
+func (s *Task) CreateTask(ctx context.Context, task models.Task) (der models.Task, err error) {
 	createRequest := CreateTaskRequest{
 		Task: task,
 	}
 	ude := new(CreateTaskResponse)
-	err = s.client.CreateRequest("task", createRequest, &ude)
+	err = s.client.CreateRequest(ctx, "task", createRequest, &ude)
 	der = ude.CreateResult.Object
 	return der, err
 }
 
 // UpdateTask - abstraction for UpdateRequest
-func (s *Task) UpdateTask(task models.Task) (taskr models.Task, err error) {
+func (s *Task) UpdateTask(ctx context.Context, task models.Task) (taskr models.Task, err error) {
 	ude := new(taskOperationResponse)
-	err = s.client.UpdateRequest(strconv.Itoa(task.ObjectID), "task", task, &ude)
+	err = s.client.UpdateRequest(ctx, strconv.Itoa(task.ObjectID), "task", task, &ude)
 	taskr = ude.OperationalResult.Object
 	return taskr, err
 }
 
 // DeleteTask - abstraction for DeleteRequest
-func (s *Task) DeleteTask(objectID string) (err error) {
+func (s *Task) DeleteTask(ctx context.Context, objectID string) (err error) {
 	ude := new(deOperationResponse)
-	err = s.client.DeleteRequest(objectID, "task", &ude)
+	err = s.client.DeleteRequest(ctx, objectID, "task", &ude)
 	return err
 }
