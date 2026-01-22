@@ -20,7 +20,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/url"
 	"strings"
@@ -31,6 +31,7 @@ type RallyClient struct {
 	apikey string
 	apiurl string
 	client ClientDoer
+	config *Config
 }
 
 //ClientDoer - interface
@@ -69,7 +70,7 @@ func (s *RallyClient) QueryRequest(query map[string]string, queryType string, ou
 	req, _ := http.NewRequest("GET", urlStr, nil)
 	req.Header.Add("ZSESSIONID", s.apikey)
 	if rallyResponse, err := s.HTTPClient().Do(req); err == nil {
-		content, _ := ioutil.ReadAll(rallyResponse.Body)
+		content, _ := io.ReadAll(rallyResponse.Body)
 		if err = json.Unmarshal(content, output); err != nil {
 			return err
 		}
@@ -91,7 +92,7 @@ func (s *RallyClient) GetRequest(objectID string, queryType string, output inter
 	req.Header.Add("ZSESSIONID", s.apikey)
 
 	if rallyResponse, err := s.HTTPClient().Do(req); err == nil {
-		content, _ := ioutil.ReadAll(rallyResponse.Body)
+		content, _ := io.ReadAll(rallyResponse.Body)
 		if err = json.Unmarshal(content, output); err != nil {
 			return err
 		}
@@ -109,7 +110,7 @@ func (s *RallyClient) CreateRequest(queryType string, input interface{}, output 
 	req.Header.Add("ZSESSIONID", s.apikey)
 
 	if rallyResponse, err := s.HTTPClient().Do(req); err == nil {
-		content, _ := ioutil.ReadAll(rallyResponse.Body)
+		content, _ := io.ReadAll(rallyResponse.Body)
 		if err = json.Unmarshal(content, output); err != nil {
 			return err
 		}
@@ -127,7 +128,7 @@ func (s *RallyClient) UpdateRequest(objectID string, queryType string, input int
 	req.Header.Add("ZSESSIONID", s.apikey)
 
 	if rallyResponse, err := s.HTTPClient().Do(req); err == nil {
-		content, _ := ioutil.ReadAll(rallyResponse.Body)
+		content, _ := io.ReadAll(rallyResponse.Body)
 		if err = json.Unmarshal(content, output); err != nil {
 			return err
 		}
@@ -148,7 +149,7 @@ func (s *RallyClient) DeleteRequest(objectID string, queryType string, output in
 	req.Header.Add("ZSESSIONID", s.apikey)
 
 	if rallyResponse, err := s.HTTPClient().Do(req); err == nil {
-		content, _ := ioutil.ReadAll(rallyResponse.Body)
+		content, _ := io.ReadAll(rallyResponse.Body)
 		if err = json.Unmarshal(content, output); err != nil {
 			return err
 		}
