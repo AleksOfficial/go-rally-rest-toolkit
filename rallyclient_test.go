@@ -19,203 +19,162 @@ package rallyresttoolkit_test
 import (
 	"bytes"
 	"context"
-	"fmt"
 	"net/http"
+	"testing"
 
 	. "github.com/aleksofficial/go-rally-rest-toolkit"
 	"github.com/aleksofficial/go-rally-rest-toolkit/fakes"
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("RallyClient", func() {
-	var (
-		ctrlResultCnt = 1
-		err           error
-		apiKey        string
-		apiURL        = "http://myRallyUrl"
-		rallyClient   *RallyClient
-		ctx           = context.Background()
-	)
-	Describe(".QueryRequest(string, string, interface) error", func() {
-		var (
-			fakeOutput *fakes.FakeOutput
-			fakeResult *fakes.FakeResult
+func TestQueryRequest_ValidQueryWithValidAPIKey(t *testing.T) {
+	fakeClient := &fakes.FakeHTTPClient{
+		FakeResponse: &http.Response{
+			StatusCode: http.StatusOK,
+			Body:       &fakes.FakeResponseBody{Reader: bytes.NewBufferString(`{"QueryResult": { "TotalResultCount": 1, "Results": [{"FakeValue": "fakeresponse"}]}}`)},
+		},
+	}
 
-			fakeFormattedID = "US624340"
-			fakeQueryType   = "hierarchicalrequirement"
-			fakeClient      = &fakes.FakeHTTPClient{
-				FakeResponse: &http.Response{
-					StatusCode: http.StatusOK,
-					Body:       &fakes.FakeResponseBody{bytes.NewBufferString(`{"QueryResult": { "TotalResultCount": 1, "Results": [{"FakeValue": "fakeresponse"}]}}`)},
-				},
-			}
-		)
-		BeforeEach(func() {
-			fakeOutput = new(fakes.FakeOutput)
-		})
-		Context("when called with a vaild query request and a valid api key", func() {
-			It("should return the results to the caller", func() {
-				apiKey = "abcdef"
-				rallyClient = New(apiKey, apiURL, fakeClient)
-				query := map[string]string{
-					"FormattedID": fakeFormattedID,
-				}
-				err = rallyClient.QueryRequest(ctx, query, fakeQueryType, &fakeOutput)
-				fmt.Printf("FakeOutput: %v\n", fakeOutput.QueryResult.TotalResultCount)
-				Ω(err).ShouldNot(HaveOccurred())
-				Ω(fakeOutput.QueryResult.TotalResultCount).Should(Equal(ctrlResultCnt))
-			})
-		})
-		Context("when called with a invaild query request", func() {
-			It("should return an error to the caller", func() {
-				apiKey = "abcdef"
-				fakeResult = new(fakes.FakeResult)
-				rallyClient = New(apiKey, apiURL, fakeClient)
-				query := map[string]string{
-					"FormattedID": fakeFormattedID,
-				}
-				err = rallyClient.QueryRequest(ctx, query, fakeQueryType, &fakeResult)
-				fmt.Printf("Error: %v\n", err.Error())
-				Ω(err).Should(HaveOccurred())
-			})
-		})
-	})
-	Describe(".GetRequest(string, string, interface) error", func() {
-		var (
-			fakeOutput *fakes.FakeOutput
-			fakeResult *fakes.FakeResult
+	apiKey := "abcdef"
+	apiURL := "http://myRallyUrl"
+	rallyClient := New(apiKey, apiURL, fakeClient)
+	ctx := context.Background()
 
-			fakeObjectID  = "50137325678"
-			fakeQueryType = "hierarchicalrequirement"
-			fakeClient    = &fakes.FakeHTTPClient{
-				FakeResponse: &http.Response{
-					StatusCode: http.StatusOK,
-					Body:       &fakes.FakeResponseBody{bytes.NewBufferString(`{"QueryResult": { "TotalResultCount": 1, "Results": [{"FakeValue": "fakeresponse"}]}}`)},
-				},
-			}
-		)
-		BeforeEach(func() {
-			fakeOutput = new(fakes.FakeOutput)
-		})
-		Context("when called with a vaild get request and a valid api key", func() {
-			It("should return the results to the caller", func() {
-				apiKey = "abcdef"
-				rallyClient = New(apiKey, apiURL, fakeClient)
-				err = rallyClient.GetRequest(ctx, fakeObjectID, fakeQueryType, &fakeOutput)
-				fmt.Printf("FakeOutput: %v\n", fakeOutput.QueryResult.TotalResultCount)
-				Ω(err).ShouldNot(HaveOccurred())
-				Ω(fakeOutput.QueryResult.TotalResultCount).Should(Equal(ctrlResultCnt))
-			})
-		})
-		XContext("when called with an invalid return interface get request", func() {
-			It("should return an error to the caller", func() {
-				apiKey = "abcdef"
-				fakeResult = new(fakes.FakeResult)
-				rallyClient = New(apiKey, apiURL, fakeClient)
-				err = rallyClient.GetRequest(ctx, fakeObjectID, fakeQueryType, &fakeResult)
-				fmt.Printf("Error: %v\n", err.Error())
-				Ω(err).Should(HaveOccurred())
-			})
-		})
-	})
-	Describe(".CreateRequest", func() {
-		var (
-			fakeOutput        *fakes.FakeCreateResponse
-			fakeCreateType    = "hierarchicalrequirement"
-			fakeCreateRequest = &fakes.FakeCreateRequest{
-				FakeItem: fakes.FakeItem{
-					Field1: "demostring",
-				},
-			}
-			fakeClient = &fakes.FakeHTTPClient{
-				FakeResponse: &http.Response{
-					StatusCode: http.StatusOK,
-					Body:       &fakes.FakeResponseBody{bytes.NewBufferString(`{"CreateResult": { "FakeObject": {"Field1": "demostring"} }}`)},
-				},
-			}
-		)
+	fakeOutput := new(fakes.FakeOutput)
+	query := map[string]string{
+		"FormattedID": "US624340",
+	}
 
-		BeforeEach(func() {
-			fakeOutput = new(fakes.FakeCreateResponse)
-		})
-		Context("when called with a vaild create request and a valid api key", func() {
-			It("should return the results to the caller", func() {
-				apiKey = "abcdef"
-				rallyClient = New(apiKey, apiURL, fakeClient)
-				err = rallyClient.CreateRequest(ctx, fakeCreateType, fakeCreateRequest, &fakeOutput)
-				fmt.Printf("FakeOutput: %v\n", fakeOutput.CreateResult)
-				Ω(err).ShouldNot(HaveOccurred())
-				Ω(fakeOutput.CreateResult.FakeObject["Field1"]).Should(Equal("demostring"))
-			})
-		})
-		Context("when called with an invalid create request type", func() {
-		})
-	})
-	Describe(".UpdateRequest", func() {
-		var (
-			fakeOutput        *fakes.FakeUpdateResponse
-			fakeUpdateType    = "hierarchicalrequirement"
-			fakeUpdateRequest = &fakes.FakeCreateRequest{
-				FakeItem: fakes.FakeItem{
-					Field1: "demostring",
-				},
-			}
-			fakeClient = &fakes.FakeHTTPClient{
-				FakeResponse: &http.Response{
-					StatusCode: http.StatusOK,
-					Body:       &fakes.FakeResponseBody{bytes.NewBufferString(`{"OperationResult": { "FakeObject": {"Field1": "demostring"} }}`)},
-				},
-			}
-		)
+	err := rallyClient.QueryRequest(ctx, query, "hierarchicalrequirement", &fakeOutput)
+	if err != nil {
+		t.Fatalf("QueryRequest failed unexpectedly: %v", err)
+	}
+	if fakeOutput.QueryResult.TotalResultCount != 1 {
+		t.Errorf("expected TotalResultCount=1, got %d", fakeOutput.QueryResult.TotalResultCount)
+	}
+}
 
-		BeforeEach(func() {
-			fakeOutput = new(fakes.FakeUpdateResponse)
-		})
-		Context("when called with a vaild update request and a valid api key", func() {
-			It("should return an error to the caller", func() {
-				apiKey = "abcdef"
-				rallyClient = New(apiKey, apiURL, fakeClient)
-				err = rallyClient.UpdateRequest(ctx, "12345", fakeUpdateType, fakeUpdateRequest, &fakeOutput)
-				fmt.Printf("FakeOutput: %v\n", fakeOutput.OperationResult)
-				Ω(err).ShouldNot(HaveOccurred())
-				Ω(fakeOutput.OperationResult.FakeObject["Field1"]).Should(Equal("demostring"))
-			})
-		})
-		Context("when called with an invalid update request type", func() {
-			It("should return an error to the caller", func() {
-			})
-		})
-	})
-	Describe(".DeleteRequest", func() {
-		var (
-			fakeOutput     *fakes.FakeUpdateResponse
-			fakeDeleteType = "hierarchicalrequirement"
+func TestQueryRequest_HTTPError(t *testing.T) {
+	fakeClient := &fakes.FakeHTTPClient{
+		FakeResponse: &http.Response{
+			StatusCode: http.StatusInternalServerError,
+			Body:       &fakes.FakeResponseBody{Reader: bytes.NewBufferString(`{"OperationResult": {"Errors": ["Server error"]}}`)},
+		},
+	}
 
-			fakeClient = &fakes.FakeHTTPClient{
-				FakeResponse: &http.Response{
-					StatusCode: http.StatusOK,
-					Body:       &fakes.FakeResponseBody{bytes.NewBufferString(`{"OperationResult": { "Errors": [] }}`)},
-				},
-			}
-		)
+	apiKey := "abcdef"
+	apiURL := "http://myRallyUrl"
+	rallyClient := New(apiKey, apiURL, fakeClient)
+	ctx := context.Background()
 
-		BeforeEach(func() {
-			fakeOutput = new(fakes.FakeUpdateResponse)
-		})
+	fakeOutput := new(fakes.FakeOutput)
+	query := map[string]string{
+		"FormattedID": "US624340",
+	}
 
-		Context("when called with a vaild delete request and a valid api key", func() {
-			It("should return the correct response to the caller", func() {
-				apiKey = "abcdef"
-				rallyClient = New(apiKey, apiURL, fakeClient)
-				err = rallyClient.DeleteRequest(ctx, "12345", fakeDeleteType, &fakeOutput)
-				fmt.Printf("FakeOutput: %v\n", fakeOutput.OperationResult)
-				Ω(err).ShouldNot(HaveOccurred())
-			})
-		})
-		Context("when called with an invalid delete request", func() {
-			It("should return an error to the caller", func() {
-			})
-		})
-	})
-})
+	err := rallyClient.QueryRequest(ctx, query, "hierarchicalrequirement", &fakeOutput)
+	if err == nil {
+		t.Error("expected error for 500 status code, got nil")
+	}
+}
+
+func TestGetRequest_ValidGetWithValidAPIKey(t *testing.T) {
+	fakeClient := &fakes.FakeHTTPClient{
+		FakeResponse: &http.Response{
+			StatusCode: http.StatusOK,
+			Body:       &fakes.FakeResponseBody{Reader: bytes.NewBufferString(`{"QueryResult": { "TotalResultCount": 1, "Results": [{"FakeValue": "fakeresponse"}]}}`)},
+		},
+	}
+
+	apiKey := "abcdef"
+	apiURL := "http://myRallyUrl"
+	rallyClient := New(apiKey, apiURL, fakeClient)
+	ctx := context.Background()
+
+	fakeOutput := new(fakes.FakeOutput)
+	err := rallyClient.GetRequest(ctx, "50137325678", "hierarchicalrequirement", &fakeOutput)
+	if err != nil {
+		t.Fatalf("GetRequest failed unexpectedly: %v", err)
+	}
+	if fakeOutput.QueryResult.TotalResultCount != 1 {
+		t.Errorf("expected TotalResultCount=1, got %d", fakeOutput.QueryResult.TotalResultCount)
+	}
+}
+
+func TestCreateRequest_ValidCreateWithValidAPIKey(t *testing.T) {
+	fakeClient := &fakes.FakeHTTPClient{
+		FakeResponse: &http.Response{
+			StatusCode: http.StatusOK,
+			Body:       &fakes.FakeResponseBody{Reader: bytes.NewBufferString(`{"CreateResult": { "FakeObject": {"Field1": "demostring"} }}`)},
+		},
+	}
+
+	apiKey := "abcdef"
+	apiURL := "http://myRallyUrl"
+	rallyClient := New(apiKey, apiURL, fakeClient)
+	ctx := context.Background()
+
+	fakeCreateRequest := &fakes.FakeCreateRequest{
+		FakeItem: fakes.FakeItem{
+			Field1: "demostring",
+		},
+	}
+	fakeOutput := new(fakes.FakeCreateResponse)
+
+	err := rallyClient.CreateRequest(ctx, "hierarchicalrequirement", fakeCreateRequest, &fakeOutput)
+	if err != nil {
+		t.Fatalf("CreateRequest failed unexpectedly: %v", err)
+	}
+	if fakeOutput.CreateResult.FakeObject["Field1"] != "demostring" {
+		t.Errorf("expected Field1='demostring', got %v", fakeOutput.CreateResult.FakeObject["Field1"])
+	}
+}
+
+func TestUpdateRequest_ValidUpdateWithValidAPIKey(t *testing.T) {
+	fakeClient := &fakes.FakeHTTPClient{
+		FakeResponse: &http.Response{
+			StatusCode: http.StatusOK,
+			Body:       &fakes.FakeResponseBody{Reader: bytes.NewBufferString(`{"OperationResult": { "FakeObject": {"Field1": "demostring"} }}`)},
+		},
+	}
+
+	apiKey := "abcdef"
+	apiURL := "http://myRallyUrl"
+	rallyClient := New(apiKey, apiURL, fakeClient)
+	ctx := context.Background()
+
+	fakeUpdateRequest := &fakes.FakeCreateRequest{
+		FakeItem: fakes.FakeItem{
+			Field1: "demostring",
+		},
+	}
+	fakeOutput := new(fakes.FakeUpdateResponse)
+
+	err := rallyClient.UpdateRequest(ctx, "12345", "hierarchicalrequirement", fakeUpdateRequest, &fakeOutput)
+	if err != nil {
+		t.Fatalf("UpdateRequest failed unexpectedly: %v", err)
+	}
+	if fakeOutput.OperationResult.FakeObject["Field1"] != "demostring" {
+		t.Errorf("expected Field1='demostring', got %v", fakeOutput.OperationResult.FakeObject["Field1"])
+	}
+}
+
+func TestDeleteRequest_ValidDeleteWithValidAPIKey(t *testing.T) {
+	fakeClient := &fakes.FakeHTTPClient{
+		FakeResponse: &http.Response{
+			StatusCode: http.StatusOK,
+			Body:       &fakes.FakeResponseBody{Reader: bytes.NewBufferString(`{"OperationResult": { "Errors": [] }}`)},
+		},
+	}
+
+	apiKey := "abcdef"
+	apiURL := "http://myRallyUrl"
+	rallyClient := New(apiKey, apiURL, fakeClient)
+	ctx := context.Background()
+
+	fakeOutput := new(fakes.FakeUpdateResponse)
+
+	err := rallyClient.DeleteRequest(ctx, "12345", "hierarchicalrequirement", &fakeOutput)
+	if err != nil {
+		t.Fatalf("DeleteRequest failed unexpectedly: %v", err)
+	}
+}

@@ -54,7 +54,12 @@ type FakeResult struct {
 
 //FakeResponseBody - a fake response body object
 type FakeResponseBody struct {
-	io.Reader
+	Reader io.Reader
+}
+
+// Read implements io.Reader
+func (f *FakeResponseBody) Read(p []byte) (n int, err error) {
+	return f.Reader.Read(p)
 }
 
 //Close - close fake body

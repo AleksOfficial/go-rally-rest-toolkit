@@ -20,163 +20,140 @@ import (
 	"bytes"
 	"context"
 	"net/http"
-	"strconv"
+	"testing"
 
 	. "github.com/aleksofficial/go-rally-rest-toolkit"
 	"github.com/aleksofficial/go-rally-rest-toolkit/fakes"
 	"github.com/aleksofficial/go-rally-rest-toolkit/models"
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("Task", func() {
+func TestQueryTask_ValidFormattedID(t *testing.T) {
+	fakeFormattedID := "TA624340"
+	fakeClient := &fakes.FakeHTTPClient{
+		FakeResponse: &http.Response{
+			StatusCode: http.StatusOK,
+			Body:       &fakes.FakeResponseBody{Reader: bytes.NewBufferString(`{"QueryResult": { "TotalResultCount": 1, "Results": [{"CreationDate": "2016-01-21T21:47:08.551Z", "ObjectID": 50137325678,"FormattedID": "TA624340","Errors": [], "Warnings": []}]}}`)},
+		},
+	}
 
-	var (
-		apiKey      string
-		apiURL      = "http://myRallyUrl"
-		rallyClient *RallyClient
-		hrclient    *Task
-		ctx         = context.Background()
-	)
-	Describe(".QueryTask", func() {
+	apiKey := "abcdef"
+	apiURL := "http://myRallyUrl"
+	rallyClient := New(apiKey, apiURL, fakeClient)
+	taskClient := NewTask(rallyClient)
+	ctx := context.Background()
 
-		var (
-			fakeFormattedID = "TA624340"
-			fakeClient      = &fakes.FakeHTTPClient{
-				FakeResponse: &http.Response{
-					StatusCode: http.StatusOK,
-					Body:       &fakes.FakeResponseBody{bytes.NewBufferString(`{"QueryResult": { "TotalResultCount": 1, "Results": [{"CreationDate": "2016-01-21T21:47:08.551Z", "ObjectID": 50137325678,"FormattedID": "TA624340","Errors": [], "Warnings": []}]}}`)},
-				},
-			}
-		)
+	query := map[string]string{
+		"FormattedID": fakeFormattedID,
+	}
+	results, err := taskClient.QueryTask(ctx, query)
+	if err != nil {
+		t.Fatalf("QueryTask failed unexpectedly: %v", err)
+	}
+	if len(results) == 0 {
+		t.Fatal("expected results, got empty slice")
+	}
+	if results[0].FormattedID != fakeFormattedID {
+		t.Errorf("expected FormattedID=%s, got %s", fakeFormattedID, results[0].FormattedID)
+	}
+}
 
-		BeforeEach(func() {
-			apiKey = "abcdef"
+func TestGetTask_ValidObjectID(t *testing.T) {
+	fakeObjectID := "50137325678"
+	ctrlID := 50137325678
+	fakeClient := &fakes.FakeHTTPClient{
+		FakeResponse: &http.Response{
+			StatusCode: http.StatusOK,
+			Body:       &fakes.FakeResponseBody{Reader: bytes.NewBufferString(`{"Task": {"CreationDate": "2016-01-21T21:47:08.551Z", "ObjectID": 50137325678,"Errors": [], "Warnings": []}}`)},
+		},
+	}
 
-			rallyClient = New(apiKey, apiURL, fakeClient)
-			hrclient = NewTask(rallyClient)
-		})
-		Context("when called with a valid formattedID", func() {
-			It("should return the requested array of Task results", func() {
-				query := map[string]string{
-					"FormattedID": fakeFormattedID,
-				}
-				hr, err := hrclient.QueryTask(ctx, query)
-				Ω(err).ShouldNot(HaveOccurred())
-				Ω(len(hr)).ShouldNot(Equal(0))
-				Ω(hr[0].FormattedID).Should(Equal(fakeFormattedID))
-			})
-		})
+	apiKey := "abcdef"
+	apiURL := "http://myRallyUrl"
+	rallyClient := New(apiKey, apiURL, fakeClient)
+	taskClient := NewTask(rallyClient)
+	ctx := context.Background()
 
-	})
+	result, err := taskClient.GetTask(ctx, fakeObjectID)
+	if err != nil {
+		t.Fatalf("GetTask failed unexpectedly: %v", err)
+	}
+	if result.ObjectID != ctrlID {
+		t.Errorf("expected ObjectID=%d, got %d", ctrlID, result.ObjectID)
+	}
+}
 
-	Describe(".GetTask", func() {
-		var (
-			fakeObjectID = "50137325678"
-			ctrlID, _    = strconv.Atoi(fakeObjectID)
-			fakeClient   = &fakes.FakeHTTPClient{
-				FakeResponse: &http.Response{
-					StatusCode: http.StatusOK,
-					Body:       &fakes.FakeResponseBody{bytes.NewBufferString(`{"Task": {"CreationDate": "2016-01-21T21:47:08.551Z", "ObjectID": 50137325678,"Errors": [], "Warnings": []}}`)},
-				},
-			}
-		)
-		BeforeEach(func() {
-			apiKey = "abcdef"
+func TestCreateTask_ValidRequest(t *testing.T) {
+	ctrlName := "NewTask"
+	fakeClient := &fakes.FakeHTTPClient{
+		FakeResponse: &http.Response{
+			StatusCode: http.StatusOK,
+			Body:       &fakes.FakeResponseBody{Reader: bytes.NewBufferString(`{"CreateResult": {"Object": {"Name": "NewTask", "CreationDate": "2016-01-21T21:47:08.551Z", "ObjectID": 50137325678,"Errors": [], "Warnings": []}}}`)},
+		},
+	}
 
-			rallyClient = New(apiKey, apiURL, fakeClient)
-			hrclient = NewTask(rallyClient)
-		})
-		Context("when called with a valid objectID", func() {
-			It("should return the Task", func() {
-				hr, err := hrclient.GetTask(ctx, fakeObjectID)
-				Ω(err).ShouldNot(HaveOccurred())
-				Ω(hr.ObjectID).Should(Equal(ctrlID))
-			})
-		})
+	apiKey := "abcdef"
+	apiURL := "http://myRallyUrl"
+	rallyClient := New(apiKey, apiURL, fakeClient)
+	taskClient := NewTask(rallyClient)
+	ctx := context.Background()
 
-	})
+	newTask := models.Task{
+		Name: ctrlName,
+	}
+	result, err := taskClient.CreateTask(ctx, newTask)
+	if err != nil {
+		t.Fatalf("CreateTask failed unexpectedly: %v", err)
+	}
+	if result.Name != ctrlName {
+		t.Errorf("expected Name=%s, got %s", ctrlName, result.Name)
+	}
+}
 
-	Describe(".CreateTask", func() {
-		var (
-			fakeClient = &fakes.FakeHTTPClient{
-				FakeResponse: &http.Response{
-					StatusCode: http.StatusOK,
+func TestUpdateTask_ValidRequest(t *testing.T) {
+	ctrlName := "UpdatedTaskName"
+	fakeClient := &fakes.FakeHTTPClient{
+		FakeResponse: &http.Response{
+			StatusCode: http.StatusOK,
+			Body:       &fakes.FakeResponseBody{Reader: bytes.NewBufferString(`{"OperationalResult": {"Object": {"Name": "UpdatedTaskName", "CreationDate": "2016-01-21T21:47:08.551Z", "ObjectID": 50137325678,"Errors": [], "Warnings": []}}}`)},
+		},
+	}
 
-					Body: &fakes.FakeResponseBody{bytes.NewBufferString(`{"CreateResult": {"Object": {"Name": "NewTask", "CreationDate": "2016-01-21T21:47:08.551Z", "ObjectID": 50137325678,"Errors": [], "Warnings": []}}}`)},
-				},
-			}
-			ctrlName   = "NewTask"
-			newHrModel = models.Task{
-				Name: ctrlName,
-			}
-		)
-		BeforeEach(func() {
-			apiKey = "abcdef"
-			rallyClient = New(apiKey, apiURL, fakeClient)
-			hrclient = NewTask(rallyClient)
-		})
-		Context("when called with a valid create request object", func() {
-			It("should return the Task object created", func() {
-				hr, err := hrclient.CreateTask(ctx, newHrModel)
-				Ω(err).ShouldNot(HaveOccurred())
-				Ω(hr.Name).Should(Equal(ctrlName))
-			})
-		})
-	})
+	apiKey := "abcdef"
+	apiURL := "http://myRallyUrl"
+	rallyClient := New(apiKey, apiURL, fakeClient)
+	taskClient := NewTask(rallyClient)
+	ctx := context.Background()
 
-	Describe(".UpdateTask", func() {
-		var (
-			fakeClient = &fakes.FakeHTTPClient{
-				FakeResponse: &http.Response{
-					StatusCode: http.StatusOK,
-					Body:       &fakes.FakeResponseBody{bytes.NewBufferString(`{"OperationalResult": {"Object": {"Name": "UpdatedTaskName", "CreationDate": "2016-01-21T21:47:08.551Z", "ObjectID": 50137325678,"Errors": [], "Warnings": []}}}`)},
-				},
-			}
-			ctrlName      = "UpdatedTaskName"
-			updateHrModel = models.Task{
-				Name:     ctrlName,
-				ObjectID: 50137325678,
-			}
-		)
-		BeforeEach(func() {
-			apiKey = "abcdef"
+	updateTask := models.Task{
+		Name:     ctrlName,
+		ObjectID: 50137325678,
+	}
+	result, err := taskClient.UpdateTask(ctx, updateTask)
+	if err != nil {
+		t.Fatalf("UpdateTask failed unexpectedly: %v", err)
+	}
+	if result.Name != ctrlName {
+		t.Errorf("expected Name=%s, got %s", ctrlName, result.Name)
+	}
+}
 
-			rallyClient = New(apiKey, apiURL, fakeClient)
-			hrclient = NewTask(rallyClient)
-		})
+func TestDeleteTask_ValidObjectID(t *testing.T) {
+	fakeObjectID := "50137325678"
+	fakeClient := &fakes.FakeHTTPClient{
+		FakeResponse: &http.Response{
+			StatusCode: http.StatusOK,
+			Body:       &fakes.FakeResponseBody{Reader: bytes.NewBufferString(`{"OperationalResult": {"Errors": [], "Warnings": []}}`)},
+		},
+	}
 
-		Context("when called with a valid update request object", func() {
-			It("should return the Task object updated", func() {
-				hr, err := hrclient.UpdateTask(ctx, updateHrModel)
-				Ω(err).ShouldNot(HaveOccurred())
-				Ω(hr.Name).Should(Equal(ctrlName))
-			})
-		})
+	apiKey := "abcdef"
+	apiURL := "http://myRallyUrl"
+	rallyClient := New(apiKey, apiURL, fakeClient)
+	taskClient := NewTask(rallyClient)
+	ctx := context.Background()
 
-	})
-
-	Describe(".DeleteTask", func() {
-		var (
-			fakeObjectID = "50137325678"
-			fakeClient   = &fakes.FakeHTTPClient{
-				FakeResponse: &http.Response{
-					StatusCode: http.StatusOK,
-					Body:       &fakes.FakeResponseBody{bytes.NewBufferString(`{"OperationalResult": {"Errors": [], "Warnings": []}}`)},
-				},
-			}
-		)
-		BeforeEach(func() {
-			apiKey = "abcdef"
-
-			rallyClient = New(apiKey, apiURL, fakeClient)
-			hrclient = NewTask(rallyClient)
-		})
-		Context("when called with a valid delete objectID", func() {
-			It("should return the correct operationalresponse struct", func() {
-				err := hrclient.DeleteTask(ctx, fakeObjectID)
-				Ω(err).ShouldNot(HaveOccurred())
-			})
-		})
-	})
-})
+	err := taskClient.DeleteTask(ctx, fakeObjectID)
+	if err != nil {
+		t.Fatalf("DeleteTask failed unexpectedly: %v", err)
+	}
+}

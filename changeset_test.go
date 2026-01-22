@@ -20,163 +20,140 @@ import (
 	"bytes"
 	"context"
 	"net/http"
-	"strconv"
+	"testing"
 
 	. "github.com/aleksofficial/go-rally-rest-toolkit"
 	"github.com/aleksofficial/go-rally-rest-toolkit/fakes"
 	"github.com/aleksofficial/go-rally-rest-toolkit/models"
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("Changeset", func() {
+func TestQueryChangeset_ValidMessage(t *testing.T) {
+	fakeMessage := "concourse-1"
+	fakeClient := &fakes.FakeHTTPClient{
+		FakeResponse: &http.Response{
+			StatusCode: http.StatusOK,
+			Body:       &fakes.FakeResponseBody{Reader: bytes.NewBufferString(`{"QueryResult": { "TotalResultCount": 1, "Results": [{"CreationDate": "2016-01-21T21:47:08.551Z", "ObjectID": 50137325678,"Message": "concourse-1","Errors": [], "Warnings": []}]}}`)},
+		},
+	}
 
-	var (
-		apiKey      string
-		apiURL      = "http://myRallyUrl"
-		rallyClient *RallyClient
-		hrclient    *Changeset
-		ctx         = context.Background()
-	)
-	Describe(".QueryChangeset", func() {
+	apiKey := "abcdef"
+	apiURL := "http://myRallyUrl"
+	rallyClient := New(apiKey, apiURL, fakeClient)
+	changesetClient := NewChangeset(rallyClient)
+	ctx := context.Background()
 
-		var (
-			fakeMessage = "concourse-1"
-			fakeClient  = &fakes.FakeHTTPClient{
-				FakeResponse: &http.Response{
-					StatusCode: http.StatusOK,
-					Body:       &fakes.FakeResponseBody{bytes.NewBufferString(`{"QueryResult": { "TotalResultCount": 1, "Results": [{"CreationDate": "2016-01-21T21:47:08.551Z", "ObjectID": 50137325678,"Message": "concourse-1","Errors": [], "Warnings": []}]}}`)},
-				},
-			}
-		)
+	query := map[string]string{
+		"Message": fakeMessage,
+	}
+	results, err := changesetClient.QueryChangeset(ctx, query)
+	if err != nil {
+		t.Fatalf("QueryChangeset failed unexpectedly: %v", err)
+	}
+	if len(results) == 0 {
+		t.Fatal("expected results, got empty slice")
+	}
+	if results[0].Message != fakeMessage {
+		t.Errorf("expected Message=%s, got %s", fakeMessage, results[0].Message)
+	}
+}
 
-		BeforeEach(func() {
-			apiKey = "abcdef"
+func TestGetChangeset_ValidObjectID(t *testing.T) {
+	fakeObjectID := "50137325678"
+	ctrlID := 50137325678
+	fakeClient := &fakes.FakeHTTPClient{
+		FakeResponse: &http.Response{
+			StatusCode: http.StatusOK,
+			Body:       &fakes.FakeResponseBody{Reader: bytes.NewBufferString(`{"Changeset": {"CreationDate": "2016-01-21T21:47:08.551Z", "ObjectID": 50137325678,"Errors": [], "Warnings": []}}`)},
+		},
+	}
 
-			rallyClient = New(apiKey, apiURL, fakeClient)
-			hrclient = NewChangeset(rallyClient)
-		})
-		Context("when called with a valid formattedID", func() {
-			It("should return the requested array of Changeset results", func() {
-				query := map[string]string{
-					"Message": fakeMessage,
-				}
-				hr, err := hrclient.QueryChangeset(ctx, query)
-				Ω(err).ShouldNot(HaveOccurred())
-				Ω(len(hr)).ShouldNot(Equal(0))
-				Ω(hr[0].Message).Should(Equal(fakeMessage))
-			})
-		})
+	apiKey := "abcdef"
+	apiURL := "http://myRallyUrl"
+	rallyClient := New(apiKey, apiURL, fakeClient)
+	changesetClient := NewChangeset(rallyClient)
+	ctx := context.Background()
 
-	})
+	result, err := changesetClient.GetChangeset(ctx, fakeObjectID)
+	if err != nil {
+		t.Fatalf("GetChangeset failed unexpectedly: %v", err)
+	}
+	if result.ObjectID != ctrlID {
+		t.Errorf("expected ObjectID=%d, got %d", ctrlID, result.ObjectID)
+	}
+}
 
-	Describe(".GetChangeset", func() {
-		var (
-			fakeObjectID = "50137325678"
-			ctrlID, _    = strconv.Atoi(fakeObjectID)
-			fakeClient   = &fakes.FakeHTTPClient{
-				FakeResponse: &http.Response{
-					StatusCode: http.StatusOK,
-					Body:       &fakes.FakeResponseBody{bytes.NewBufferString(`{"Changeset": {"CreationDate": "2016-01-21T21:47:08.551Z", "ObjectID": 50137325678,"Errors": [], "Warnings": []}}`)},
-				},
-			}
-		)
-		BeforeEach(func() {
-			apiKey = "abcdef"
+func TestCreateChangeset_ValidRequest(t *testing.T) {
+	ctrlName := "NewChangeset"
+	fakeClient := &fakes.FakeHTTPClient{
+		FakeResponse: &http.Response{
+			StatusCode: http.StatusOK,
+			Body:       &fakes.FakeResponseBody{Reader: bytes.NewBufferString(`{"CreateResult": {"Object": {"Name": "NewChangeset", "CreationDate": "2016-01-21T21:47:08.551Z", "ObjectID": 50137325678,"Errors": [], "Warnings": []}}}`)},
+		},
+	}
 
-			rallyClient = New(apiKey, apiURL, fakeClient)
-			hrclient = NewChangeset(rallyClient)
-		})
-		Context("when called with a valid objectID", func() {
-			It("should return the Changeset", func() {
-				hr, err := hrclient.GetChangeset(ctx, fakeObjectID)
-				Ω(err).ShouldNot(HaveOccurred())
-				Ω(hr.ObjectID).Should(Equal(ctrlID))
-			})
-		})
+	apiKey := "abcdef"
+	apiURL := "http://myRallyUrl"
+	rallyClient := New(apiKey, apiURL, fakeClient)
+	changesetClient := NewChangeset(rallyClient)
+	ctx := context.Background()
 
-	})
+	newChangeset := models.Changeset{
+		Name: ctrlName,
+	}
+	result, err := changesetClient.CreateChangeset(ctx, newChangeset)
+	if err != nil {
+		t.Fatalf("CreateChangeset failed unexpectedly: %v", err)
+	}
+	if result.Name != ctrlName {
+		t.Errorf("expected Name=%s, got %s", ctrlName, result.Name)
+	}
+}
 
-	Describe(".CreateChangeset", func() {
-		var (
-			fakeClient = &fakes.FakeHTTPClient{
-				FakeResponse: &http.Response{
-					StatusCode: http.StatusOK,
+func TestUpdateChangeset_ValidRequest(t *testing.T) {
+	ctrlName := "UpdatedChangesetName"
+	fakeClient := &fakes.FakeHTTPClient{
+		FakeResponse: &http.Response{
+			StatusCode: http.StatusOK,
+			Body:       &fakes.FakeResponseBody{Reader: bytes.NewBufferString(`{"OperationalResult": {"Object": {"Name": "UpdatedChangesetName", "CreationDate": "2016-01-21T21:47:08.551Z", "ObjectID": 50137325678,"Errors": [], "Warnings": []}}}`)},
+		},
+	}
 
-					Body: &fakes.FakeResponseBody{bytes.NewBufferString(`{"CreateResult": {"Object": {"Name": "NewChangeset", "CreationDate": "2016-01-21T21:47:08.551Z", "ObjectID": 50137325678,"Errors": [], "Warnings": []}}}`)},
-				},
-			}
-			ctrlName   = "NewChangeset"
-			newHrModel = models.Changeset{
-				Name: ctrlName,
-			}
-		)
-		BeforeEach(func() {
-			apiKey = "abcdef"
-			rallyClient = New(apiKey, apiURL, fakeClient)
-			hrclient = NewChangeset(rallyClient)
-		})
-		Context("when called with a valid create request object", func() {
-			It("should return the Changeset object created", func() {
-				hr, err := hrclient.CreateChangeset(ctx, newHrModel)
-				Ω(err).ShouldNot(HaveOccurred())
-				Ω(hr.Name).Should(Equal(ctrlName))
-			})
-		})
-	})
+	apiKey := "abcdef"
+	apiURL := "http://myRallyUrl"
+	rallyClient := New(apiKey, apiURL, fakeClient)
+	changesetClient := NewChangeset(rallyClient)
+	ctx := context.Background()
 
-	Describe(".UpdateChangeset", func() {
-		var (
-			fakeClient = &fakes.FakeHTTPClient{
-				FakeResponse: &http.Response{
-					StatusCode: http.StatusOK,
-					Body:       &fakes.FakeResponseBody{bytes.NewBufferString(`{"OperationalResult": {"Object": {"Name": "UpdatedChangesetName", "CreationDate": "2016-01-21T21:47:08.551Z", "ObjectID": 50137325678,"Errors": [], "Warnings": []}}}`)},
-				},
-			}
-			ctrlName      = "UpdatedChangesetName"
-			updateHrModel = models.Changeset{
-				Name:     ctrlName,
-				ObjectID: 50137325678,
-			}
-		)
-		BeforeEach(func() {
-			apiKey = "abcdef"
+	updateChangeset := models.Changeset{
+		Name:     ctrlName,
+		ObjectID: 50137325678,
+	}
+	result, err := changesetClient.UpdateChangeset(ctx, updateChangeset)
+	if err != nil {
+		t.Fatalf("UpdateChangeset failed unexpectedly: %v", err)
+	}
+	if result.Name != ctrlName {
+		t.Errorf("expected Name=%s, got %s", ctrlName, result.Name)
+	}
+}
 
-			rallyClient = New(apiKey, apiURL, fakeClient)
-			hrclient = NewChangeset(rallyClient)
-		})
+func TestDeleteChangeset_ValidObjectID(t *testing.T) {
+	fakeObjectID := "50137325678"
+	fakeClient := &fakes.FakeHTTPClient{
+		FakeResponse: &http.Response{
+			StatusCode: http.StatusOK,
+			Body:       &fakes.FakeResponseBody{Reader: bytes.NewBufferString(`{"OperationalResult": {"Errors": [], "Warnings": []}}`)},
+		},
+	}
 
-		Context("when called with a valid update request object", func() {
-			It("should return the Changeset object updated", func() {
-				hr, err := hrclient.UpdateChangeset(ctx, updateHrModel)
-				Ω(err).ShouldNot(HaveOccurred())
-				Ω(hr.Name).Should(Equal(ctrlName))
-			})
-		})
+	apiKey := "abcdef"
+	apiURL := "http://myRallyUrl"
+	rallyClient := New(apiKey, apiURL, fakeClient)
+	changesetClient := NewChangeset(rallyClient)
+	ctx := context.Background()
 
-	})
-
-	Describe(".DeleteChangeset", func() {
-		var (
-			fakeObjectID = "50137325678"
-			fakeClient   = &fakes.FakeHTTPClient{
-				FakeResponse: &http.Response{
-					StatusCode: http.StatusOK,
-					Body:       &fakes.FakeResponseBody{bytes.NewBufferString(`{"OperationalResult": {"Errors": [], "Warnings": []}}`)},
-				},
-			}
-		)
-		BeforeEach(func() {
-			apiKey = "abcdef"
-
-			rallyClient = New(apiKey, apiURL, fakeClient)
-			hrclient = NewChangeset(rallyClient)
-		})
-		Context("when called with a valid delete objectID", func() {
-			It("should return the correct operationalresponse struct", func() {
-				err := hrclient.DeleteChangeset(ctx, fakeObjectID)
-				Ω(err).ShouldNot(HaveOccurred())
-			})
-		})
-	})
-})
+	err := changesetClient.DeleteChangeset(ctx, fakeObjectID)
+	if err != nil {
+		t.Fatalf("DeleteChangeset failed unexpectedly: %v", err)
+	}
+}

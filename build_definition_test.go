@@ -20,163 +20,140 @@ import (
 	"bytes"
 	"context"
 	"net/http"
-	"strconv"
+	"testing"
 
 	. "github.com/aleksofficial/go-rally-rest-toolkit"
 	"github.com/aleksofficial/go-rally-rest-toolkit/fakes"
 	"github.com/aleksofficial/go-rally-rest-toolkit/models"
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("BuildDefinition", func() {
+func TestQueryBuildDefinition_ValidName(t *testing.T) {
+	fakeName := "concourse-1"
+	fakeClient := &fakes.FakeHTTPClient{
+		FakeResponse: &http.Response{
+			StatusCode: http.StatusOK,
+			Body:       &fakes.FakeResponseBody{Reader: bytes.NewBufferString(`{"QueryResult": { "TotalResultCount": 1, "Results": [{"CreationDate": "2016-01-21T21:47:08.551Z", "ObjectID": 50137325678,"Name": "concourse-1","Errors": [], "Warnings": []}]}}`)},
+		},
+	}
 
-	var (
-		apiKey      string
-		apiURL      = "http://myRallyUrl"
-		rallyClient *RallyClient
-		hrclient    *BuildDefinition
-		ctx         = context.Background()
-	)
-	Describe(".QueryBuildDefinition", func() {
+	apiKey := "abcdef"
+	apiURL := "http://myRallyUrl"
+	rallyClient := New(apiKey, apiURL, fakeClient)
+	buildDefClient := NewBuildDefinition(rallyClient)
+	ctx := context.Background()
 
-		var (
-			fakeName   = "concourse-1"
-			fakeClient = &fakes.FakeHTTPClient{
-				FakeResponse: &http.Response{
-					StatusCode: http.StatusOK,
-					Body:       &fakes.FakeResponseBody{bytes.NewBufferString(`{"QueryResult": { "TotalResultCount": 1, "Results": [{"CreationDate": "2016-01-21T21:47:08.551Z", "ObjectID": 50137325678,"Name": "concourse-1","Errors": [], "Warnings": []}]}}`)},
-				},
-			}
-		)
+	query := map[string]string{
+		"Name": fakeName,
+	}
+	results, err := buildDefClient.QueryBuildDefinition(ctx, query)
+	if err != nil {
+		t.Fatalf("QueryBuildDefinition failed unexpectedly: %v", err)
+	}
+	if len(results) == 0 {
+		t.Fatal("expected results, got empty slice")
+	}
+	if results[0].Name != fakeName {
+		t.Errorf("expected Name=%s, got %s", fakeName, results[0].Name)
+	}
+}
 
-		BeforeEach(func() {
-			apiKey = "abcdef"
+func TestGetBuildDefinition_ValidObjectID(t *testing.T) {
+	fakeObjectID := "50137325678"
+	ctrlID := 50137325678
+	fakeClient := &fakes.FakeHTTPClient{
+		FakeResponse: &http.Response{
+			StatusCode: http.StatusOK,
+			Body:       &fakes.FakeResponseBody{Reader: bytes.NewBufferString(`{"BuildDefinition": {"CreationDate": "2016-01-21T21:47:08.551Z", "ObjectID": 50137325678,"Errors": [], "Warnings": []}}`)},
+		},
+	}
 
-			rallyClient = New(apiKey, apiURL, fakeClient)
-			hrclient = NewBuildDefinition(rallyClient)
-		})
-		Context("when called with a valid formattedID", func() {
-			It("should return the requested array of BuildDefinition results", func() {
-				query := map[string]string{
-					"Name": fakeName,
-				}
-				hr, err := hrclient.QueryBuildDefinition(ctx, query)
-				Ω(err).ShouldNot(HaveOccurred())
-				Ω(len(hr)).ShouldNot(Equal(0))
-				Ω(hr[0].Name).Should(Equal(fakeName))
-			})
-		})
+	apiKey := "abcdef"
+	apiURL := "http://myRallyUrl"
+	rallyClient := New(apiKey, apiURL, fakeClient)
+	buildDefClient := NewBuildDefinition(rallyClient)
+	ctx := context.Background()
 
-	})
+	result, err := buildDefClient.GetBuildDefinition(ctx, fakeObjectID)
+	if err != nil {
+		t.Fatalf("GetBuildDefinition failed unexpectedly: %v", err)
+	}
+	if result.ObjectID != ctrlID {
+		t.Errorf("expected ObjectID=%d, got %d", ctrlID, result.ObjectID)
+	}
+}
 
-	Describe(".GetBuildDefinition", func() {
-		var (
-			fakeObjectID = "50137325678"
-			ctrlID, _    = strconv.Atoi(fakeObjectID)
-			fakeClient   = &fakes.FakeHTTPClient{
-				FakeResponse: &http.Response{
-					StatusCode: http.StatusOK,
-					Body:       &fakes.FakeResponseBody{bytes.NewBufferString(`{"BuildDefinition": {"CreationDate": "2016-01-21T21:47:08.551Z", "ObjectID": 50137325678,"Errors": [], "Warnings": []}}`)},
-				},
-			}
-		)
-		BeforeEach(func() {
-			apiKey = "abcdef"
+func TestCreateBuildDefinition_ValidRequest(t *testing.T) {
+	ctrlName := "NewBuildDefinition"
+	fakeClient := &fakes.FakeHTTPClient{
+		FakeResponse: &http.Response{
+			StatusCode: http.StatusOK,
+			Body:       &fakes.FakeResponseBody{Reader: bytes.NewBufferString(`{"CreateResult": {"Object": {"Name": "NewBuildDefinition", "CreationDate": "2016-01-21T21:47:08.551Z", "ObjectID": 50137325678,"Errors": [], "Warnings": []}}}`)},
+		},
+	}
 
-			rallyClient = New(apiKey, apiURL, fakeClient)
-			hrclient = NewBuildDefinition(rallyClient)
-		})
-		Context("when called with a valid objectID", func() {
-			It("should return the BuildDefinition", func() {
-				hr, err := hrclient.GetBuildDefinition(ctx, fakeObjectID)
-				Ω(err).ShouldNot(HaveOccurred())
-				Ω(hr.ObjectID).Should(Equal(ctrlID))
-			})
-		})
+	apiKey := "abcdef"
+	apiURL := "http://myRallyUrl"
+	rallyClient := New(apiKey, apiURL, fakeClient)
+	buildDefClient := NewBuildDefinition(rallyClient)
+	ctx := context.Background()
 
-	})
+	newBuildDef := models.BuildDefinition{
+		Name: ctrlName,
+	}
+	result, err := buildDefClient.CreateBuildDefinition(ctx, newBuildDef)
+	if err != nil {
+		t.Fatalf("CreateBuildDefinition failed unexpectedly: %v", err)
+	}
+	if result.Name != ctrlName {
+		t.Errorf("expected Name=%s, got %s", ctrlName, result.Name)
+	}
+}
 
-	Describe(".CreateBuildDefinition", func() {
-		var (
-			fakeClient = &fakes.FakeHTTPClient{
-				FakeResponse: &http.Response{
-					StatusCode: http.StatusOK,
+func TestUpdateBuildDefinition_ValidRequest(t *testing.T) {
+	ctrlName := "UpdatedBuildDefinitionName"
+	fakeClient := &fakes.FakeHTTPClient{
+		FakeResponse: &http.Response{
+			StatusCode: http.StatusOK,
+			Body:       &fakes.FakeResponseBody{Reader: bytes.NewBufferString(`{"OperationalResult": {"Object": {"Name": "UpdatedBuildDefinitionName", "CreationDate": "2016-01-21T21:47:08.551Z", "ObjectID": 50137325678,"Errors": [], "Warnings": []}}}`)},
+		},
+	}
 
-					Body: &fakes.FakeResponseBody{bytes.NewBufferString(`{"CreateResult": {"Object": {"Name": "NewBuildDefinition", "CreationDate": "2016-01-21T21:47:08.551Z", "ObjectID": 50137325678,"Errors": [], "Warnings": []}}}`)},
-				},
-			}
-			ctrlName   = "NewBuildDefinition"
-			newHrModel = models.BuildDefinition{
-				Name: ctrlName,
-			}
-		)
-		BeforeEach(func() {
-			apiKey = "abcdef"
-			rallyClient = New(apiKey, apiURL, fakeClient)
-			hrclient = NewBuildDefinition(rallyClient)
-		})
-		Context("when called with a valid create request object", func() {
-			It("should return the BuildDefinition object created", func() {
-				hr, err := hrclient.CreateBuildDefinition(ctx, newHrModel)
-				Ω(err).ShouldNot(HaveOccurred())
-				Ω(hr.Name).Should(Equal(ctrlName))
-			})
-		})
-	})
+	apiKey := "abcdef"
+	apiURL := "http://myRallyUrl"
+	rallyClient := New(apiKey, apiURL, fakeClient)
+	buildDefClient := NewBuildDefinition(rallyClient)
+	ctx := context.Background()
 
-	Describe(".UpdateBuildDefinition", func() {
-		var (
-			fakeClient = &fakes.FakeHTTPClient{
-				FakeResponse: &http.Response{
-					StatusCode: http.StatusOK,
-					Body:       &fakes.FakeResponseBody{bytes.NewBufferString(`{"OperationalResult": {"Object": {"Name": "UpdatedBuildDefinitionName", "CreationDate": "2016-01-21T21:47:08.551Z", "ObjectID": 50137325678,"Errors": [], "Warnings": []}}}`)},
-				},
-			}
-			ctrlName      = "UpdatedBuildDefinitionName"
-			updateHrModel = models.BuildDefinition{
-				Name:     ctrlName,
-				ObjectID: 50137325678,
-			}
-		)
-		BeforeEach(func() {
-			apiKey = "abcdef"
+	updateBuildDef := models.BuildDefinition{
+		Name:     ctrlName,
+		ObjectID: 50137325678,
+	}
+	result, err := buildDefClient.UpdateBuildDefinition(ctx, updateBuildDef)
+	if err != nil {
+		t.Fatalf("UpdateBuildDefinition failed unexpectedly: %v", err)
+	}
+	if result.Name != ctrlName {
+		t.Errorf("expected Name=%s, got %s", ctrlName, result.Name)
+	}
+}
 
-			rallyClient = New(apiKey, apiURL, fakeClient)
-			hrclient = NewBuildDefinition(rallyClient)
-		})
+func TestDeleteBuildDefinition_ValidObjectID(t *testing.T) {
+	fakeObjectID := "50137325678"
+	fakeClient := &fakes.FakeHTTPClient{
+		FakeResponse: &http.Response{
+			StatusCode: http.StatusOK,
+			Body:       &fakes.FakeResponseBody{Reader: bytes.NewBufferString(`{"OperationalResult": {"Errors": [], "Warnings": []}}`)},
+		},
+	}
 
-		Context("when called with a valid update request object", func() {
-			It("should return the BuildDefinition object updated", func() {
-				hr, err := hrclient.UpdateBuildDefinition(ctx, updateHrModel)
-				Ω(err).ShouldNot(HaveOccurred())
-				Ω(hr.Name).Should(Equal(ctrlName))
-			})
-		})
+	apiKey := "abcdef"
+	apiURL := "http://myRallyUrl"
+	rallyClient := New(apiKey, apiURL, fakeClient)
+	buildDefClient := NewBuildDefinition(rallyClient)
+	ctx := context.Background()
 
-	})
-
-	Describe(".DeleteBuildDefinition", func() {
-		var (
-			fakeObjectID = "50137325678"
-			fakeClient   = &fakes.FakeHTTPClient{
-				FakeResponse: &http.Response{
-					StatusCode: http.StatusOK,
-					Body:       &fakes.FakeResponseBody{bytes.NewBufferString(`{"OperationalResult": {"Errors": [], "Warnings": []}}`)},
-				},
-			}
-		)
-		BeforeEach(func() {
-			apiKey = "abcdef"
-
-			rallyClient = New(apiKey, apiURL, fakeClient)
-			hrclient = NewBuildDefinition(rallyClient)
-		})
-		Context("when called with a valid delete objectID", func() {
-			It("should return the correct operationalresponse struct", func() {
-				err := hrclient.DeleteBuildDefinition(ctx, fakeObjectID)
-				Ω(err).ShouldNot(HaveOccurred())
-			})
-		})
-	})
-})
+	err := buildDefClient.DeleteBuildDefinition(ctx, fakeObjectID)
+	if err != nil {
+		t.Fatalf("DeleteBuildDefinition failed unexpectedly: %v", err)
+	}
+}

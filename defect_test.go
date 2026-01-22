@@ -20,163 +20,140 @@ import (
 	"bytes"
 	"context"
 	"net/http"
-	"strconv"
+	"testing"
 
 	. "github.com/aleksofficial/go-rally-rest-toolkit"
 	"github.com/aleksofficial/go-rally-rest-toolkit/fakes"
 	"github.com/aleksofficial/go-rally-rest-toolkit/models"
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("Defect", func() {
+func TestQueryDefect_ValidFormattedID(t *testing.T) {
+	fakeFormattedID := "DE624340"
+	fakeClient := &fakes.FakeHTTPClient{
+		FakeResponse: &http.Response{
+			StatusCode: http.StatusOK,
+			Body:       &fakes.FakeResponseBody{Reader: bytes.NewBufferString(`{"QueryResult": { "TotalResultCount": 1, "Results": [{"CreationDate": "2016-01-21T21:47:08.551Z", "ObjectID": 50137325678,"FormattedID": "DE624340","Errors": [], "Warnings": []}]}}`)},
+		},
+	}
 
-	var (
-		apiKey      string
-		apiURL      = "http://myRallyUrl"
-		rallyClient *RallyClient
-		hrclient    *Defect
-		ctx         = context.Background()
-	)
-	Describe(".QueryDefect", func() {
+	apiKey := "abcdef"
+	apiURL := "http://myRallyUrl"
+	rallyClient := New(apiKey, apiURL, fakeClient)
+	defectClient := NewDefect(rallyClient)
+	ctx := context.Background()
 
-		var (
-			fakeFormattedID = "DE624340"
-			fakeClient      = &fakes.FakeHTTPClient{
-				FakeResponse: &http.Response{
-					StatusCode: http.StatusOK,
-					Body:       &fakes.FakeResponseBody{bytes.NewBufferString(`{"QueryResult": { "TotalResultCount": 1, "Results": [{"CreationDate": "2016-01-21T21:47:08.551Z", "ObjectID": 50137325678,"FormattedID": "DE624340","Errors": [], "Warnings": []}]}}`)},
-				},
-			}
-		)
+	query := map[string]string{
+		"FormattedID": fakeFormattedID,
+	}
+	results, err := defectClient.QueryDefect(ctx, query)
+	if err != nil {
+		t.Fatalf("QueryDefect failed unexpectedly: %v", err)
+	}
+	if len(results) == 0 {
+		t.Fatal("expected results, got empty slice")
+	}
+	if results[0].FormattedID != fakeFormattedID {
+		t.Errorf("expected FormattedID=%s, got %s", fakeFormattedID, results[0].FormattedID)
+	}
+}
 
-		BeforeEach(func() {
-			apiKey = "abcdef"
+func TestGetDefect_ValidObjectID(t *testing.T) {
+	fakeObjectID := "50137325678"
+	ctrlID := 50137325678
+	fakeClient := &fakes.FakeHTTPClient{
+		FakeResponse: &http.Response{
+			StatusCode: http.StatusOK,
+			Body:       &fakes.FakeResponseBody{Reader: bytes.NewBufferString(`{"Defect": {"CreationDate": "2016-01-21T21:47:08.551Z", "ObjectID": 50137325678,"Errors": [], "Warnings": []}}`)},
+		},
+	}
 
-			rallyClient = New(apiKey, apiURL, fakeClient)
-			hrclient = NewDefect(rallyClient)
-		})
-		Context("when called with a valid formattedID", func() {
-			It("should return the requested array of defect results", func() {
-				query := map[string]string{
-					"FormattedID": fakeFormattedID,
-				}
-				hr, err := hrclient.QueryDefect(ctx, query)
-				Ω(err).ShouldNot(HaveOccurred())
-				Ω(len(hr)).ShouldNot(Equal(0))
-				Ω(hr[0].FormattedID).Should(Equal(fakeFormattedID))
-			})
-		})
+	apiKey := "abcdef"
+	apiURL := "http://myRallyUrl"
+	rallyClient := New(apiKey, apiURL, fakeClient)
+	defectClient := NewDefect(rallyClient)
+	ctx := context.Background()
 
-	})
+	result, err := defectClient.GetDefect(ctx, fakeObjectID)
+	if err != nil {
+		t.Fatalf("GetDefect failed unexpectedly: %v", err)
+	}
+	if result.ObjectID != ctrlID {
+		t.Errorf("expected ObjectID=%d, got %d", ctrlID, result.ObjectID)
+	}
+}
 
-	Describe(".GetDefect", func() {
-		var (
-			fakeObjectID = "50137325678"
-			ctrlID, _    = strconv.Atoi(fakeObjectID)
-			fakeClient   = &fakes.FakeHTTPClient{
-				FakeResponse: &http.Response{
-					StatusCode: http.StatusOK,
-					Body:       &fakes.FakeResponseBody{bytes.NewBufferString(`{"Defect": {"CreationDate": "2016-01-21T21:47:08.551Z", "ObjectID": 50137325678,"Errors": [], "Warnings": []}}`)},
-				},
-			}
-		)
-		BeforeEach(func() {
-			apiKey = "abcdef"
+func TestCreateDefect_ValidRequest(t *testing.T) {
+	ctrlName := "NewStory"
+	fakeClient := &fakes.FakeHTTPClient{
+		FakeResponse: &http.Response{
+			StatusCode: http.StatusOK,
+			Body:       &fakes.FakeResponseBody{Reader: bytes.NewBufferString(`{"CreateResult": {"Object": {"Name": "NewStory", "CreationDate": "2016-01-21T21:47:08.551Z", "ObjectID": 50137325678,"Errors": [], "Warnings": []}}}`)},
+		},
+	}
 
-			rallyClient = New(apiKey, apiURL, fakeClient)
-			hrclient = NewDefect(rallyClient)
-		})
-		Context("when called with a valid objectID", func() {
-			It("should return the Defect", func() {
-				hr, err := hrclient.GetDefect(ctx, fakeObjectID)
-				Ω(err).ShouldNot(HaveOccurred())
-				Ω(hr.ObjectID).Should(Equal(ctrlID))
-			})
-		})
+	apiKey := "abcdef"
+	apiURL := "http://myRallyUrl"
+	rallyClient := New(apiKey, apiURL, fakeClient)
+	defectClient := NewDefect(rallyClient)
+	ctx := context.Background()
 
-	})
+	newDefect := models.Defect{
+		Name: ctrlName,
+	}
+	result, err := defectClient.CreateDefect(ctx, newDefect)
+	if err != nil {
+		t.Fatalf("CreateDefect failed unexpectedly: %v", err)
+	}
+	if result.Name != ctrlName {
+		t.Errorf("expected Name=%s, got %s", ctrlName, result.Name)
+	}
+}
 
-	Describe(".CreateDefect", func() {
-		var (
-			fakeClient = &fakes.FakeHTTPClient{
-				FakeResponse: &http.Response{
-					StatusCode: http.StatusOK,
+func TestUpdateDefect_ValidRequest(t *testing.T) {
+	ctrlName := "UpdatedStoryName"
+	fakeClient := &fakes.FakeHTTPClient{
+		FakeResponse: &http.Response{
+			StatusCode: http.StatusOK,
+			Body:       &fakes.FakeResponseBody{Reader: bytes.NewBufferString(`{"OperationalResult": {"Object": {"Name": "UpdatedStoryName", "CreationDate": "2016-01-21T21:47:08.551Z", "ObjectID": 50137325678,"Errors": [], "Warnings": []}}}`)},
+		},
+	}
 
-					Body: &fakes.FakeResponseBody{bytes.NewBufferString(`{"CreateResult": {"Object": {"Name": "NewStory", "CreationDate": "2016-01-21T21:47:08.551Z", "ObjectID": 50137325678,"Errors": [], "Warnings": []}}}`)},
-				},
-			}
-			ctrlName   = "NewStory"
-			newHrModel = models.Defect{
-				Name: ctrlName,
-			}
-		)
-		BeforeEach(func() {
-			apiKey = "abcdef"
-			rallyClient = New(apiKey, apiURL, fakeClient)
-			hrclient = NewDefect(rallyClient)
-		})
-		Context("when called with a valid create request object", func() {
-			It("should return the Defect object created", func() {
-				hr, err := hrclient.CreateDefect(ctx, newHrModel)
-				Ω(err).ShouldNot(HaveOccurred())
-				Ω(hr.Name).Should(Equal(ctrlName))
-			})
-		})
-	})
+	apiKey := "abcdef"
+	apiURL := "http://myRallyUrl"
+	rallyClient := New(apiKey, apiURL, fakeClient)
+	defectClient := NewDefect(rallyClient)
+	ctx := context.Background()
 
-	Describe(".UpdateDefect", func() {
-		var (
-			fakeClient = &fakes.FakeHTTPClient{
-				FakeResponse: &http.Response{
-					StatusCode: http.StatusOK,
-					Body:       &fakes.FakeResponseBody{bytes.NewBufferString(`{"OperationalResult": {"Object": {"Name": "UpdatedStoryName", "CreationDate": "2016-01-21T21:47:08.551Z", "ObjectID": 50137325678,"Errors": [], "Warnings": []}}}`)},
-				},
-			}
-			ctrlName      = "UpdatedStoryName"
-			updateHrModel = models.Defect{
-				Name:     ctrlName,
-				ObjectID: 50137325678,
-			}
-		)
-		BeforeEach(func() {
-			apiKey = "abcdef"
+	updateDefect := models.Defect{
+		Name:     ctrlName,
+		ObjectID: 50137325678,
+	}
+	result, err := defectClient.UpdateDefect(ctx, updateDefect)
+	if err != nil {
+		t.Fatalf("UpdateDefect failed unexpectedly: %v", err)
+	}
+	if result.Name != ctrlName {
+		t.Errorf("expected Name=%s, got %s", ctrlName, result.Name)
+	}
+}
 
-			rallyClient = New(apiKey, apiURL, fakeClient)
-			hrclient = NewDefect(rallyClient)
-		})
+func TestDeleteDefect_ValidObjectID(t *testing.T) {
+	fakeObjectID := "50137325678"
+	fakeClient := &fakes.FakeHTTPClient{
+		FakeResponse: &http.Response{
+			StatusCode: http.StatusOK,
+			Body:       &fakes.FakeResponseBody{Reader: bytes.NewBufferString(`{"OperationalResult": {"Errors": [], "Warnings": []}}`)},
+		},
+	}
 
-		Context("when called with a valid update request object", func() {
-			It("should return the Defect object updated", func() {
-				hr, err := hrclient.UpdateDefect(ctx, updateHrModel)
-				Ω(err).ShouldNot(HaveOccurred())
-				Ω(hr.Name).Should(Equal(ctrlName))
-			})
-		})
+	apiKey := "abcdef"
+	apiURL := "http://myRallyUrl"
+	rallyClient := New(apiKey, apiURL, fakeClient)
+	defectClient := NewDefect(rallyClient)
+	ctx := context.Background()
 
-	})
-
-	Describe(".DeleteDefect", func() {
-		var (
-			fakeObjectID = "50137325678"
-			fakeClient   = &fakes.FakeHTTPClient{
-				FakeResponse: &http.Response{
-					StatusCode: http.StatusOK,
-					Body:       &fakes.FakeResponseBody{bytes.NewBufferString(`{"OperationalResult": {"Errors": [], "Warnings": []}}`)},
-				},
-			}
-		)
-		BeforeEach(func() {
-			apiKey = "abcdef"
-
-			rallyClient = New(apiKey, apiURL, fakeClient)
-			hrclient = NewDefect(rallyClient)
-		})
-		Context("when called with a valid delete objectID", func() {
-			It("should return the correct operationalresponse struct", func() {
-				err := hrclient.DeleteDefect(ctx, fakeObjectID)
-				Ω(err).ShouldNot(HaveOccurred())
-			})
-		})
-	})
-})
+	err := defectClient.DeleteDefect(ctx, fakeObjectID)
+	if err != nil {
+		t.Fatalf("DeleteDefect failed unexpectedly: %v", err)
+	}
+}

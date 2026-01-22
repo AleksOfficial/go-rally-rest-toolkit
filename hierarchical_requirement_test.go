@@ -20,163 +20,140 @@ import (
 	"bytes"
 	"context"
 	"net/http"
-	"strconv"
+	"testing"
 
 	. "github.com/aleksofficial/go-rally-rest-toolkit"
 	"github.com/aleksofficial/go-rally-rest-toolkit/fakes"
 	"github.com/aleksofficial/go-rally-rest-toolkit/models"
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("HierarchichalRequirement", func() {
+func TestQueryHierarchicalRequirement_ValidFormattedID(t *testing.T) {
+	fakeFormattedID := "US624340"
+	fakeClient := &fakes.FakeHTTPClient{
+		FakeResponse: &http.Response{
+			StatusCode: http.StatusOK,
+			Body:       &fakes.FakeResponseBody{Reader: bytes.NewBufferString(`{"QueryResult": { "TotalResultCount": 1, "Results": [{"CreationDate": "2016-01-21T21:47:08.551Z", "ObjectID": 50137325678,"FormattedID": "US624340","Errors": [], "Warnings": []}]}}`)},
+		},
+	}
 
-	var (
-		apiKey      string
-		apiURL      = "http://myRallyUrl"
-		rallyClient *RallyClient
-		hrclient    *HierarchicalRequirement
-		ctx         = context.Background()
-	)
-	Describe(".QueryHierarchicalRequirement", func() {
+	apiKey := "abcdef"
+	apiURL := "http://myRallyUrl"
+	rallyClient := New(apiKey, apiURL, fakeClient)
+	hrClient := NewHierarchicalRequirement(rallyClient)
+	ctx := context.Background()
 
-		var (
-			fakeFormattedID = "US624340"
-			fakeClient      = &fakes.FakeHTTPClient{
-				FakeResponse: &http.Response{
-					StatusCode: http.StatusOK,
-					Body:       &fakes.FakeResponseBody{bytes.NewBufferString(`{"QueryResult": { "TotalResultCount": 1, "Results": [{"CreationDate": "2016-01-21T21:47:08.551Z", "ObjectID": 50137325678,"FormattedID": "US624340","Errors": [], "Warnings": []}]}}`)},
-				},
-			}
-		)
+	query := map[string]string{
+		"FormattedID": fakeFormattedID,
+	}
+	results, err := hrClient.QueryHierarchicalRequirement(ctx, query)
+	if err != nil {
+		t.Fatalf("QueryHierarchicalRequirement failed unexpectedly: %v", err)
+	}
+	if len(results) == 0 {
+		t.Fatal("expected results, got empty slice")
+	}
+	if results[0].FormattedID != fakeFormattedID {
+		t.Errorf("expected FormattedID=%s, got %s", fakeFormattedID, results[0].FormattedID)
+	}
+}
 
-		BeforeEach(func() {
-			apiKey = "abcdef"
+func TestGetHierarchicalRequirement_ValidObjectID(t *testing.T) {
+	fakeObjectID := "50137325678"
+	ctrlID := 50137325678
+	fakeClient := &fakes.FakeHTTPClient{
+		FakeResponse: &http.Response{
+			StatusCode: http.StatusOK,
+			Body:       &fakes.FakeResponseBody{Reader: bytes.NewBufferString(`{"HierarchicalRequirement": {"CreationDate": "2016-01-21T21:47:08.551Z", "ObjectID": 50137325678,"Errors": [], "Warnings": []}}`)},
+		},
+	}
 
-			rallyClient = New(apiKey, apiURL, fakeClient)
-			hrclient = NewHierarchicalRequirement(rallyClient)
-		})
-		Context("when called with a valid formattedID", func() {
-			It("should return the requested array of hierarchichal requirement results", func() {
-				query := map[string]string{
-					"FormattedID": fakeFormattedID,
-				}
-				hr, err := hrclient.QueryHierarchicalRequirement(ctx, query)
-				Ω(err).ShouldNot(HaveOccurred())
-				Ω(len(hr)).ShouldNot(Equal(0))
-				Ω(hr[0].FormattedID).Should(Equal(fakeFormattedID))
-			})
-		})
+	apiKey := "abcdef"
+	apiURL := "http://myRallyUrl"
+	rallyClient := New(apiKey, apiURL, fakeClient)
+	hrClient := NewHierarchicalRequirement(rallyClient)
+	ctx := context.Background()
 
-	})
+	result, err := hrClient.GetHierarchicalRequirement(ctx, fakeObjectID)
+	if err != nil {
+		t.Fatalf("GetHierarchicalRequirement failed unexpectedly: %v", err)
+	}
+	if result.ObjectID != ctrlID {
+		t.Errorf("expected ObjectID=%d, got %d", ctrlID, result.ObjectID)
+	}
+}
 
-	Describe(".GetHierarchicalRequirement", func() {
-		var (
-			fakeObjectID = "50137325678"
-			ctrlID, _    = strconv.Atoi(fakeObjectID)
-			fakeClient   = &fakes.FakeHTTPClient{
-				FakeResponse: &http.Response{
-					StatusCode: http.StatusOK,
-					Body:       &fakes.FakeResponseBody{bytes.NewBufferString(`{"HierarchicalRequirement": {"CreationDate": "2016-01-21T21:47:08.551Z", "ObjectID": 50137325678,"Errors": [], "Warnings": []}}`)},
-				},
-			}
-		)
-		BeforeEach(func() {
-			apiKey = "abcdef"
+func TestCreateHierarchicalRequirement_ValidRequest(t *testing.T) {
+	ctrlName := "NewStory"
+	fakeClient := &fakes.FakeHTTPClient{
+		FakeResponse: &http.Response{
+			StatusCode: http.StatusOK,
+			Body:       &fakes.FakeResponseBody{Reader: bytes.NewBufferString(`{"CreateResult": {"Object": {"Name": "NewStory", "CreationDate": "2016-01-21T21:47:08.551Z", "ObjectID": 50137325678,"Errors": [], "Warnings": []}}}`)},
+		},
+	}
 
-			rallyClient = New(apiKey, apiURL, fakeClient)
-			hrclient = NewHierarchicalRequirement(rallyClient)
-		})
-		Context("when called with a valid objectID", func() {
-			It("should return the hierarchichal requirement", func() {
-				hr, err := hrclient.GetHierarchicalRequirement(ctx, fakeObjectID)
-				Ω(err).ShouldNot(HaveOccurred())
-				Ω(hr.ObjectID).Should(Equal(ctrlID))
-			})
-		})
+	apiKey := "abcdef"
+	apiURL := "http://myRallyUrl"
+	rallyClient := New(apiKey, apiURL, fakeClient)
+	hrClient := NewHierarchicalRequirement(rallyClient)
+	ctx := context.Background()
 
-	})
+	newHR := models.HierarchicalRequirement{
+		Name: ctrlName,
+	}
+	result, err := hrClient.CreateHierarchicalRequirement(ctx, newHR)
+	if err != nil {
+		t.Fatalf("CreateHierarchicalRequirement failed unexpectedly: %v", err)
+	}
+	if result.Name != ctrlName {
+		t.Errorf("expected Name=%s, got %s", ctrlName, result.Name)
+	}
+}
 
-	Describe(".CreateHierarchicalRequirement", func() {
-		var (
-			fakeClient = &fakes.FakeHTTPClient{
-				FakeResponse: &http.Response{
-					StatusCode: http.StatusOK,
+func TestUpdateHierarchicalRequirement_ValidRequest(t *testing.T) {
+	ctrlName := "UpdatedStoryName"
+	fakeClient := &fakes.FakeHTTPClient{
+		FakeResponse: &http.Response{
+			StatusCode: http.StatusOK,
+			Body:       &fakes.FakeResponseBody{Reader: bytes.NewBufferString(`{"OperationalResult": {"Object": {"Name": "UpdatedStoryName", "CreationDate": "2016-01-21T21:47:08.551Z", "ObjectID": 50137325678,"Errors": [], "Warnings": []}}}`)},
+		},
+	}
 
-					Body: &fakes.FakeResponseBody{bytes.NewBufferString(`{"CreateResult": {"Object": {"Name": "NewStory", "CreationDate": "2016-01-21T21:47:08.551Z", "ObjectID": 50137325678,"Errors": [], "Warnings": []}}}`)},
-				},
-			}
-			ctrlName   = "NewStory"
-			newHrModel = models.HierarchicalRequirement{
-				Name: ctrlName,
-			}
-		)
-		BeforeEach(func() {
-			apiKey = "abcdef"
-			rallyClient = New(apiKey, apiURL, fakeClient)
-			hrclient = NewHierarchicalRequirement(rallyClient)
-		})
-		Context("when called with a valid create request object", func() {
-			It("should return the HierarchicalRequirement object created", func() {
-				hr, err := hrclient.CreateHierarchicalRequirement(ctx, newHrModel)
-				Ω(err).ShouldNot(HaveOccurred())
-				Ω(hr.Name).Should(Equal(ctrlName))
-			})
-		})
-	})
+	apiKey := "abcdef"
+	apiURL := "http://myRallyUrl"
+	rallyClient := New(apiKey, apiURL, fakeClient)
+	hrClient := NewHierarchicalRequirement(rallyClient)
+	ctx := context.Background()
 
-	Describe(".UpdateHierarchicalRequirement", func() {
-		var (
-			fakeClient = &fakes.FakeHTTPClient{
-				FakeResponse: &http.Response{
-					StatusCode: http.StatusOK,
-					Body:       &fakes.FakeResponseBody{bytes.NewBufferString(`{"OperationalResult": {"Object": {"Name": "UpdatedStoryName", "CreationDate": "2016-01-21T21:47:08.551Z", "ObjectID": 50137325678,"Errors": [], "Warnings": []}}}`)},
-				},
-			}
-			ctrlName      = "UpdatedStoryName"
-			updateHrModel = models.HierarchicalRequirement{
-				Name:     ctrlName,
-				ObjectID: 50137325678,
-			}
-		)
-		BeforeEach(func() {
-			apiKey = "abcdef"
+	updateHR := models.HierarchicalRequirement{
+		Name:     ctrlName,
+		ObjectID: 50137325678,
+	}
+	result, err := hrClient.UpdateHierarchicalRequirement(ctx, updateHR)
+	if err != nil {
+		t.Fatalf("UpdateHierarchicalRequirement failed unexpectedly: %v", err)
+	}
+	if result.Name != ctrlName {
+		t.Errorf("expected Name=%s, got %s", ctrlName, result.Name)
+	}
+}
 
-			rallyClient = New(apiKey, apiURL, fakeClient)
-			hrclient = NewHierarchicalRequirement(rallyClient)
-		})
+func TestDeleteHierarchicalRequirement_ValidObjectID(t *testing.T) {
+	fakeObjectID := "50137325678"
+	fakeClient := &fakes.FakeHTTPClient{
+		FakeResponse: &http.Response{
+			StatusCode: http.StatusOK,
+			Body:       &fakes.FakeResponseBody{Reader: bytes.NewBufferString(`{"OperationalResult": {"Errors": [], "Warnings": []}}`)},
+		},
+	}
 
-		Context("when called with a valid update request object", func() {
-			It("should return the HierarchicalRequirement object updated", func() {
-				hr, err := hrclient.UpdateHierarchicalRequirement(ctx, updateHrModel)
-				Ω(err).ShouldNot(HaveOccurred())
-				Ω(hr.Name).Should(Equal(ctrlName))
-			})
-		})
+	apiKey := "abcdef"
+	apiURL := "http://myRallyUrl"
+	rallyClient := New(apiKey, apiURL, fakeClient)
+	hrClient := NewHierarchicalRequirement(rallyClient)
+	ctx := context.Background()
 
-	})
-
-	Describe(".DeleteHierarchicalRequirement", func() {
-		var (
-			fakeObjectID = "50137325678"
-			fakeClient   = &fakes.FakeHTTPClient{
-				FakeResponse: &http.Response{
-					StatusCode: http.StatusOK,
-					Body:       &fakes.FakeResponseBody{bytes.NewBufferString(`{"OperationalResult": {"Errors": [], "Warnings": []}}`)},
-				},
-			}
-		)
-		BeforeEach(func() {
-			apiKey = "abcdef"
-
-			rallyClient = New(apiKey, apiURL, fakeClient)
-			hrclient = NewHierarchicalRequirement(rallyClient)
-		})
-		Context("when called with a valid delete objectID", func() {
-			It("should return the correct operationalresponse struct", func() {
-				err := hrclient.DeleteHierarchicalRequirement(ctx, fakeObjectID)
-				Ω(err).ShouldNot(HaveOccurred())
-			})
-		})
-	})
-})
+	err := hrClient.DeleteHierarchicalRequirement(ctx, fakeObjectID)
+	if err != nil {
+		t.Fatalf("DeleteHierarchicalRequirement failed unexpectedly: %v", err)
+	}
+}
