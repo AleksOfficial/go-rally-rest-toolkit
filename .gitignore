@@ -25,3 +25,8 @@ _testmain.go
 
 coverage.out
 ci/
+
+# Environment files
+.env
+.env.local
+.env.*.local
