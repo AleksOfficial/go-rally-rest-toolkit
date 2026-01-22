@@ -55,9 +55,11 @@ func (s *RallyClient) HTTPClient() ClientDoer {
 }
 
 // QueryRequest - function to search for an object.
-func (s *RallyClient) QueryRequest(ctx context.Context, query map[string]string, queryType string, output interface{}) (err error) {
-
-	baseURL, _ := url.Parse(strings.Join([]string{s.apiurl, queryType}, "/"))
+func (s *RallyClient) QueryRequest(ctx context.Context, query map[string]string, queryType string, output interface{}) error {
+	baseURL, err := url.Parse(strings.Join([]string{s.apiurl, queryType}, "/"))
+	if err != nil {
+		return fmt.Errorf("failed to parse URL: %w", err)
+	}
 
 	params := url.Values{}
 	params.Add("fetch", "true")
@@ -66,94 +68,195 @@ func (s *RallyClient) QueryRequest(ctx context.Context, query map[string]string,
 	}
 	baseURL.RawQuery = params.Encode()
 
-	urlStr := fmt.Sprintf("%v", baseURL)
+	urlStr := baseURL.String()
 
-	req, _ := http.NewRequestWithContext(ctx, "GET", urlStr, nil)
-	req.Header.Add("ZSESSIONID", s.apikey)
-	if rallyResponse, err := s.HTTPClient().Do(req); err == nil {
-		content, _ := io.ReadAll(rallyResponse.Body)
-		if err = json.Unmarshal(content, output); err != nil {
-			return err
-		}
+	req, err := http.NewRequestWithContext(ctx, "GET", urlStr, nil)
+	if err != nil {
+		return fmt.Errorf("failed to create request: %w", err)
 	}
+	req.Header.Add("ZSESSIONID", s.apikey)
+
+	rallyResponse, err := s.HTTPClient().Do(req)
+	if err != nil {
+		return fmt.Errorf("failed to execute request: %w", err)
+	}
+	defer rallyResponse.Body.Close()
+
+	content, err := io.ReadAll(rallyResponse.Body)
+	if err != nil {
+		return fmt.Errorf("failed to read response body: %w", err)
+	}
+
+	if rallyResponse.StatusCode < 200 || rallyResponse.StatusCode >= 300 {
+		return fmt.Errorf("unexpected status code %d: %s", rallyResponse.StatusCode, string(content))
+	}
+
+	if err := json.Unmarshal(content, output); err != nil {
+		return fmt.Errorf("failed to unmarshal response: %w", err)
+	}
+
 	return nil
 }
 
 // GetRequest - Function to perform GET requests when objectID is known.
-func (s *RallyClient) GetRequest(ctx context.Context, objectID string, queryType string, output interface{}) (err error) {
-	baseURL, _ := url.Parse(strings.Join([]string{s.apiurl, queryType, objectID}, "/"))
+func (s *RallyClient) GetRequest(ctx context.Context, objectID string, queryType string, output interface{}) error {
+	baseURL, err := url.Parse(strings.Join([]string{s.apiurl, queryType, objectID}, "/"))
+	if err != nil {
+		return fmt.Errorf("failed to parse URL: %w", err)
+	}
 
 	params := url.Values{}
 	params.Add("fetch", "true")
 	baseURL.RawQuery = params.Encode()
 
-	urlStr := fmt.Sprintf("%v", baseURL)
+	urlStr := baseURL.String()
 
-	req, _ := http.NewRequestWithContext(ctx, "GET", urlStr, nil)
+	req, err := http.NewRequestWithContext(ctx, "GET", urlStr, nil)
+	if err != nil {
+		return fmt.Errorf("failed to create request: %w", err)
+	}
 	req.Header.Add("ZSESSIONID", s.apikey)
 
-	if rallyResponse, err := s.HTTPClient().Do(req); err == nil {
-		content, _ := io.ReadAll(rallyResponse.Body)
-		if err = json.Unmarshal(content, output); err != nil {
-			return err
-		}
+	rallyResponse, err := s.HTTPClient().Do(req)
+	if err != nil {
+		return fmt.Errorf("failed to execute request: %w", err)
 	}
+	defer rallyResponse.Body.Close()
+
+	content, err := io.ReadAll(rallyResponse.Body)
+	if err != nil {
+		return fmt.Errorf("failed to read response body: %w", err)
+	}
+
+	if rallyResponse.StatusCode < 200 || rallyResponse.StatusCode >= 300 {
+		return fmt.Errorf("unexpected status code %d: %s", rallyResponse.StatusCode, string(content))
+	}
+
+	if err := json.Unmarshal(content, output); err != nil {
+		return fmt.Errorf("failed to unmarshal response: %w", err)
+	}
+
 	return nil
 }
 
-func (s *RallyClient) CreateRequest(ctx context.Context, queryType string, input interface{}, output interface{}) (err error) {
-	baseURL, _ := url.Parse(strings.Join([]string{s.apiurl, queryType, "create"}, "/"))
+func (s *RallyClient) CreateRequest(ctx context.Context, queryType string, input interface{}, output interface{}) error {
+	baseURL, err := url.Parse(strings.Join([]string{s.apiurl, queryType, "create"}, "/"))
+	if err != nil {
+		return fmt.Errorf("failed to parse URL: %w", err)
+	}
 
-	urlStr := fmt.Sprintf("%v", baseURL)
+	urlStr := baseURL.String()
 
 	inputByteArray, err := json.Marshal(input)
-	req, _ := http.NewRequestWithContext(ctx, "POST", urlStr, bytes.NewReader(inputByteArray))
+	if err != nil {
+		return fmt.Errorf("failed to marshal request body: %w", err)
+	}
+
+	req, err := http.NewRequestWithContext(ctx, "POST", urlStr, bytes.NewReader(inputByteArray))
+	if err != nil {
+		return fmt.Errorf("failed to create request: %w", err)
+	}
 	req.Header.Add("ZSESSIONID", s.apikey)
 
-	if rallyResponse, err := s.HTTPClient().Do(req); err == nil {
-		content, _ := io.ReadAll(rallyResponse.Body)
-		if err = json.Unmarshal(content, output); err != nil {
-			return err
-		}
+	rallyResponse, err := s.HTTPClient().Do(req)
+	if err != nil {
+		return fmt.Errorf("failed to execute request: %w", err)
 	}
+	defer rallyResponse.Body.Close()
+
+	content, err := io.ReadAll(rallyResponse.Body)
+	if err != nil {
+		return fmt.Errorf("failed to read response body: %w", err)
+	}
+
+	if rallyResponse.StatusCode < 200 || rallyResponse.StatusCode >= 300 {
+		return fmt.Errorf("unexpected status code %d: %s", rallyResponse.StatusCode, string(content))
+	}
+
+	if err := json.Unmarshal(content, output); err != nil {
+		return fmt.Errorf("failed to unmarshal response: %w", err)
+	}
+
 	return nil
 }
 
-func (s *RallyClient) UpdateRequest(ctx context.Context, objectID string, queryType string, input interface{}, output interface{}) (err error) {
-	baseURL, _ := url.Parse(strings.Join([]string{s.apiurl, queryType, objectID}, "/"))
+func (s *RallyClient) UpdateRequest(ctx context.Context, objectID string, queryType string, input interface{}, output interface{}) error {
+	baseURL, err := url.Parse(strings.Join([]string{s.apiurl, queryType, objectID}, "/"))
+	if err != nil {
+		return fmt.Errorf("failed to parse URL: %w", err)
+	}
 
-	urlStr := fmt.Sprintf("%v", baseURL)
+	urlStr := baseURL.String()
 
 	inputByteArray, err := json.Marshal(input)
-	req, _ := http.NewRequestWithContext(ctx, "POST", urlStr, bytes.NewReader(inputByteArray))
+	if err != nil {
+		return fmt.Errorf("failed to marshal request body: %w", err)
+	}
+
+	req, err := http.NewRequestWithContext(ctx, "POST", urlStr, bytes.NewReader(inputByteArray))
+	if err != nil {
+		return fmt.Errorf("failed to create request: %w", err)
+	}
 	req.Header.Add("ZSESSIONID", s.apikey)
 
-	if rallyResponse, err := s.HTTPClient().Do(req); err == nil {
-		content, _ := io.ReadAll(rallyResponse.Body)
-		if err = json.Unmarshal(content, output); err != nil {
-			return err
-		}
+	rallyResponse, err := s.HTTPClient().Do(req)
+	if err != nil {
+		return fmt.Errorf("failed to execute request: %w", err)
 	}
+	defer rallyResponse.Body.Close()
+
+	content, err := io.ReadAll(rallyResponse.Body)
+	if err != nil {
+		return fmt.Errorf("failed to read response body: %w", err)
+	}
+
+	if rallyResponse.StatusCode < 200 || rallyResponse.StatusCode >= 300 {
+		return fmt.Errorf("unexpected status code %d: %s", rallyResponse.StatusCode, string(content))
+	}
+
+	if err := json.Unmarshal(content, output); err != nil {
+		return fmt.Errorf("failed to unmarshal response: %w", err)
+	}
+
 	return nil
 }
 
-func (s *RallyClient) DeleteRequest(ctx context.Context, objectID string, queryType string, output interface{}) (err error) {
-	baseURL, _ := url.Parse(strings.Join([]string{s.apiurl, queryType, objectID}, "/"))
+func (s *RallyClient) DeleteRequest(ctx context.Context, objectID string, queryType string, output interface{}) error {
+	baseURL, err := url.Parse(strings.Join([]string{s.apiurl, queryType, objectID}, "/"))
+	if err != nil {
+		return fmt.Errorf("failed to parse URL: %w", err)
+	}
 
 	params := url.Values{}
 	params.Add("fetch", "true")
 	baseURL.RawQuery = params.Encode()
 
-	urlStr := fmt.Sprintf("%v", baseURL)
+	urlStr := baseURL.String()
 
-	req, _ := http.NewRequestWithContext(ctx, "DELETE", urlStr, nil)
+	req, err := http.NewRequestWithContext(ctx, "DELETE", urlStr, nil)
+	if err != nil {
+		return fmt.Errorf("failed to create request: %w", err)
+	}
 	req.Header.Add("ZSESSIONID", s.apikey)
 
-	if rallyResponse, err := s.HTTPClient().Do(req); err == nil {
-		content, _ := io.ReadAll(rallyResponse.Body)
-		if err = json.Unmarshal(content, output); err != nil {
-			return err
-		}
+	rallyResponse, err := s.HTTPClient().Do(req)
+	if err != nil {
+		return fmt.Errorf("failed to execute request: %w", err)
 	}
+	defer rallyResponse.Body.Close()
+
+	content, err := io.ReadAll(rallyResponse.Body)
+	if err != nil {
+		return fmt.Errorf("failed to read response body: %w", err)
+	}
+
+	if rallyResponse.StatusCode < 200 || rallyResponse.StatusCode >= 300 {
+		return fmt.Errorf("unexpected status code %d: %s", rallyResponse.StatusCode, string(content))
+	}
+
+	if err := json.Unmarshal(content, output); err != nil {
+		return fmt.Errorf("failed to unmarshal response: %w", err)
+	}
+
 	return nil
 }
